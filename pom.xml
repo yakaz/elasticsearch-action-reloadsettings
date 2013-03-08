@@ -2,24 +2,24 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <name>elasticsearch-action-reload</name>
+    <name>elasticsearch-action-reloadsettings</name>
     <description>
-        The Reload action plugin for ElasticSearch provides with a new REST
+        The Reload Settings action plugin for ElasticSearch provides with a new REST
         end-point that reads configuration files and applies corresponding
         dynamic settings, and reports the other changes that could not be applied.
     </description>
     <inceptionYear>2013</inceptionYear>
 
     <groupId>com.yakaz.elasticsearch.plugins</groupId>
-    <artifactId>elasticsearch-action-reload</artifactId>
+    <artifactId>elasticsearch-action-reloadsettings</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <url>http://github.com/yakaz/elasticsearch-action-reload</url>
+    <url>http://github.com/yakaz/elasticsearch-action-reloadsettings</url>
     <scm>
-        <connection>scm:git:git@github.com:yakaz/elasticsearch-action-reload.git</connection>
-        <developerConnection>scm:git:git@github.com:yakaz/elasticsearch-action-reload.git</developerConnection>
-        <url>https://github.com/yakaz/elasticsearch-action-reload.git</url>
+        <connection>scm:git:git@github.com:yakaz/elasticsearch-action-reloadsettings.git</connection>
+        <developerConnection>scm:git:git@github.com:yakaz/elasticsearch-action-reloadsettings.git</developerConnection>
+        <url>https://github.com/yakaz/elasticsearch-action-reloadsettings.git</url>
         <tag>HEAD</tag>
     </scm>
 

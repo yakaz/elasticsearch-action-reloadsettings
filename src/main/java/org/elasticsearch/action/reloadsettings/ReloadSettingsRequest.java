@@ -1,9 +1,9 @@
-package org.elasticsearch.action.reload;
+package org.elasticsearch.action.reloadsettings;
 
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
 
-public class ReloadRequest extends ActionRequest<ReloadRequest> {
+public class ReloadSettingsRequest extends ActionRequest<ReloadSettingsRequest> {
 
     // TODO
 

@@ -1,10 +1,10 @@
-package org.elasticsearch.rest.action.reload;
+package org.elasticsearch.rest.action.reloadsettings;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.reload.ReloadRequest;
-import org.elasticsearch.action.reload.ReloadResponse;
+import org.elasticsearch.action.reloadsettings.ReloadSettingsRequest;
+import org.elasticsearch.action.reloadsettings.ReloadSettingsResponse;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.ReloadClientWrapper;
+import org.elasticsearch.client.ReloadSettingsClientWrapper;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -23,27 +23,27 @@ import static org.elasticsearch.rest.RestRequest.Method.GET;
 import static org.elasticsearch.rest.RestRequest.Method.POST;
 import static org.elasticsearch.rest.RestStatus.OK;
 
-public class RestReloadAction extends BaseRestHandler {
+public class RestReloadSettingsAction extends BaseRestHandler {
 
-    final protected ReloadClientWrapper reloadClientWrapper;
+    final protected ReloadSettingsClientWrapper reloadSettingsClientWrapper;
 
     @Inject
-    public RestReloadAction(Settings settings, Client client, RestController controller) {
+    public RestReloadSettingsAction(Settings settings, Client client, RestController controller) {
         super(settings, client);
-        reloadClientWrapper = new ReloadClientWrapper(client);
-        controller.registerHandler(GET, "/_cluster/settings/reload", this);
-        controller.registerHandler(POST, "/_cluster/settings/reload", this);
+        reloadSettingsClientWrapper = new ReloadSettingsClientWrapper(client);
+        controller.registerHandler(GET, "/_cluster/settings/reloadsettings", this);
+        controller.registerHandler(POST, "/_cluster/settings/reloadsettings", this);
     }
 
     @Override
     public void handleRequest(final RestRequest request, final RestChannel channel) {
-        ReloadRequest reloadRequest = new ReloadRequest();
+        ReloadSettingsRequest reloadSettingsRequest = new ReloadSettingsRequest();
 
         // TODO Parsing
 
-        reloadClientWrapper.reload(reloadRequest, new ActionListener<ReloadResponse>() {
+        reloadSettingsClientWrapper.reloadSettings(reloadSettingsRequest, new ActionListener<ReloadSettingsResponse>() {
             @Override
-            public void onResponse(ReloadResponse response) {
+            public void onResponse(ReloadSettingsResponse response) {
                 try {
                     XContentBuilder builder = RestXContentBuilder.restContentBuilder(request);
 

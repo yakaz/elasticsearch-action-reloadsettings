@@ -1,9 +1,9 @@
-package org.elasticsearch.test.integration.action.reload;
+package org.elasticsearch.test.integration.action.reloadsettings;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.reload.ReloadResponse;
-import org.elasticsearch.client.ReloadClient;
-import org.elasticsearch.client.ReloadClientWrapper;
+import org.elasticsearch.action.reloadsettings.ReloadSettingsResponse;
+import org.elasticsearch.client.ReloadSettingsClient;
+import org.elasticsearch.client.ReloadSettingsClientWrapper;
 import org.elasticsearch.test.integration.AbstractNodesTests;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -14,10 +14,10 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 @Test
-public class ReloadActionTests extends AbstractNodesTests {
+public class ReloadSettingsActionTests extends AbstractNodesTests {
 
-    public ReloadClient reloadClient(String id) {
-        return new ReloadClientWrapper(client(id));
+    public ReloadSettingsClient reloadSettingsClient(String id) {
+        return new ReloadSettingsClientWrapper(client(id));
     }
 
     @BeforeMethod
@@ -43,7 +43,7 @@ public class ReloadActionTests extends AbstractNodesTests {
 
     @Test
     public void testRestEndpoint() throws Exception {
-        ReloadResponse response = reloadClient("node1").prepareReload().execute().actionGet();
+        ReloadSettingsResponse response = reloadSettingsClient("node1").prepareReloadSettings().execute().actionGet();
         assertThat(response, notNullValue());
     }
 
