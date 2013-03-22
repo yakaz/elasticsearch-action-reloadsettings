@@ -1,1 +1,6 @@
+# Maven
 /target/
+
+# ElasticSearch
+/data/
+/logs/
