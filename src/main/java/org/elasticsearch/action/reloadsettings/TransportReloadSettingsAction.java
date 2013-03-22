@@ -5,11 +5,14 @@ import org.elasticsearch.action.support.nodes.NodeOperationRequest;
 import org.elasticsearch.action.support.nodes.TransportNodesOperationAction;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.Environment;
+import org.elasticsearch.node.internal.InternalSettingsPerparer;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -77,7 +80,10 @@ public class TransportReloadSettingsAction extends TransportNodesOperationAction
             nodeResponse.setTransientSettings(clusterService.state().metaData().transientSettings());
             nodeResponse.setPersistentSettings(clusterService.state().metaData().persistentSettings());
         }
-        nodeResponse.setFileSettings(ImmutableSettings.Builder.EMPTY_SETTINGS); // TODO
+        Settings pSettings = ImmutableSettings.builder().put("name", "{RANDOM}").build(); // neutralize randomly chosen name for response consistency
+        Tuple<Settings, Environment> startupConf = InternalSettingsPerparer.prepareSettings(pSettings, true);
+        nodeResponse.setFileSettings(startupConf.v1());
+        nodeResponse.setEnvironmentSettings(startupConf.v2().settings());
         nodeResponse.setInitialSettings(settings);
         return nodeResponse;
     }

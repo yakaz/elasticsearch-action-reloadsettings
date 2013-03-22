@@ -27,9 +27,11 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
 
     // Node level settings
 
+    private Settings initialSettings;
+
     private Settings fileSettings;
 
-    private Settings initialSettings;
+    private Settings environmentSettings;
 
     public ReloadSettings() {
     }
@@ -42,13 +44,15 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
                           @Nullable Settings nodeSettings,
                           @Nullable Settings transientSettings,
                           @Nullable Settings persistentSettings,
+                          Settings initialSettings,
                           Settings fileSettings,
-                          Settings initialSettings) {
+                          Settings environmentSettings) {
         super(node);
         this.nodeSettings = nodeSettings;
         this.transientSettings = transientSettings;
         this.persistentSettings = persistentSettings;
         this.fileSettings = fileSettings;
+        this.environmentSettings = environmentSettings;
         this.initialSettings = initialSettings;
     }
 
@@ -76,6 +80,14 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
         this.persistentSettings = persistentSettings;
     }
 
+    public Settings getInitialSettings() {
+        return initialSettings;
+    }
+
+    public void setInitialSettings(Settings initialSettings) {
+        this.initialSettings = initialSettings;
+    }
+
     public Settings getFileSettings() {
         return fileSettings;
     }
@@ -84,12 +96,12 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
         this.fileSettings = fileSettings;
     }
 
-    public Settings getInitialSettings() {
-        return initialSettings;
+    public Settings getEnvironmentSettings() {
+        return environmentSettings;
     }
 
-    public void setInitialSettings(Settings initialSettings) {
-        this.initialSettings = initialSettings;
+    public void setEnvironmentSettings(Settings environmentSettings) {
+        this.environmentSettings = environmentSettings;
     }
 
     @Override
@@ -102,6 +114,7 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
             persistentSettings = ImmutableSettings.readSettingsFromStream(in);
         }
         fileSettings = ImmutableSettings.readSettingsFromStream(in);
+        environmentSettings = ImmutableSettings.readSettingsFromStream(in);
         initialSettings = ImmutableSettings.readSettingsFromStream(in);
     }
 
@@ -117,6 +130,7 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
             out.writeBoolean(false);
         }
         ImmutableSettings.writeSettingsToStream(fileSettings, out);
+        ImmutableSettings.writeSettingsToStream(environmentSettings, out);
         ImmutableSettings.writeSettingsToStream(initialSettings, out);
     }
 
@@ -131,6 +145,7 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
         } else {
             builder.field("initial", initialSettings.getAsMap());
             builder.field("file", fileSettings.getAsMap());
+            builder.field("environment", environmentSettings.getAsMap());
         }
         builder.endObject();
         return builder;
