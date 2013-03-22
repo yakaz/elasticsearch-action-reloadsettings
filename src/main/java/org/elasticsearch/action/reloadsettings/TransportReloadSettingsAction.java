@@ -25,6 +25,8 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 
 public class TransportReloadSettingsAction extends TransportNodesOperationAction<ReloadSettingsRequest, ReloadSettingsResponse, TransportReloadSettingsAction.ReloadSettingsRequest, ReloadSettings> {
 
+    public static final String RANDOM_VALUE_AT_STARTUP = "{RANDOM_VALUE_AT_STARTUP}";
+
     private final DynamicSettings dynamicSettings;
 
     @Inject
@@ -87,7 +89,7 @@ public class TransportReloadSettingsAction extends TransportNodesOperationAction
             nodeResponse.setPersistentSettings(clusterService.state().metaData().persistentSettings());
         }
         Settings pSettings = ImmutableSettings.builder()
-                .put("name", "{RANDOM}") // neutralize randomly chosen name for response consistency
+                .put("name", RANDOM_VALUE_AT_STARTUP) // neutralize randomly chosen name for response consistency
                 .build();
         Tuple<Settings, Environment> startupConf = InternalSettingsPerparer.prepareSettings(pSettings, true);
         nodeResponse.setFileSettings(startupConf.v1());
