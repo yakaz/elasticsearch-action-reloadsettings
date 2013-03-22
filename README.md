@@ -6,15 +6,11 @@ The Reload Settings action plugin provides with a new REST end-point that reads 
 Installation
 ------------
 
-Simply run at the root of your ElasticSearch v0.20.2+ installation:
+Simply run at the root of your ElasticSearch installation:
 
 	bin/plugin -install com.yakaz.elasticsearch.plugins/elasticsearch-action-reloadsettings/1.0.0
 
 This will download the plugin from the Central Maven Repository.
-
-For older versions of ElasticSearch, you can still use the longer:
-
-	bin/plugin -url http://oss.sonatype.org/content/repositories/releases/com/yakaz/elasticsearch/plugins/elasticsearch-action-reloadsettings/1.0.0/elasticsearch-action-reloadsettings-1.0.0.zip install elasticsearch-action-reloadsettings
 
 In order to declare this plugin as a dependency, add the following to your `pom.xml`:
 
@@ -28,13 +24,13 @@ In order to declare this plugin as a dependency, add the following to your `pom.
 
 Version matrix:
 
-	┌────────┬────────────────┐
-	│ Plugin │ ElasticSearch  │
-	├────────┼────────────────┤
-	│ master │ 0.90 ─► master │
-	├────────┼────────────────┤
-	│ 1.0.0  │ 0.19 ─► master │
-	└────────┴────────────────┘
+	┌────────┬──────────────────────┐
+	│ Plugin │     ElasticSearch    │
+	├────────┼──────────────────────┤
+	│ master │ 0.90.0.RC1 ─► master │
+	├────────┼──────────────────────┤
+	│ 1.0.0  │ 0.90.0.RC1 ─► master │
+	└────────┴──────────────────────┘
 
 Description
 -----------
