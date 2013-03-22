@@ -9,7 +9,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentBuilderString;
 import org.elasticsearch.rest.BaseRestHandler;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestController;
@@ -22,7 +21,6 @@ import org.elasticsearch.rest.action.support.RestXContentBuilder;
 import java.io.IOException;
 
 import static org.elasticsearch.rest.RestRequest.Method.GET;
-import static org.elasticsearch.rest.RestRequest.Method.POST;
 import static org.elasticsearch.rest.RestStatus.OK;
 
 public class RestReloadSettingsAction extends BaseRestHandler {
@@ -34,7 +32,7 @@ public class RestReloadSettingsAction extends BaseRestHandler {
         super(settings, client);
         reloadSettingsClientWrapper = new ReloadSettingsClientWrapper(client.admin().cluster());
         controller.registerHandler(GET, "/_nodes/settings/reload", this);
-        controller.registerHandler(POST, "/_nodes/{nodeId}/settings/reload", this);
+        controller.registerHandler(GET, "/_nodes/{nodeId}/settings/reload", this);
     }
 
     @Override
@@ -49,7 +47,6 @@ public class RestReloadSettingsAction extends BaseRestHandler {
                     XContentBuilder builder = RestXContentBuilder.restContentBuilder(request);
 
                     builder.startObject();
-                    builder.field(Fields.OK, true); // XXX
                     response.toXContent(builder, ToXContent.EMPTY_PARAMS);
                     builder.endObject();
 
@@ -68,10 +65,6 @@ public class RestReloadSettingsAction extends BaseRestHandler {
                 }
             }
         });
-    }
-
-    static final class Fields {
-        static final XContentBuilderString OK = new XContentBuilderString("ok");
     }
 
 }
