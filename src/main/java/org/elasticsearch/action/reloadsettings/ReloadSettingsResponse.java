@@ -16,6 +16,8 @@ import java.util.Set;
 
 public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSettings> implements ToXContent {
 
+    private static final String INCONSISTENCY = new String();
+
     private final DynamicSettings dynamicSettings;
     private ReloadSettings.Cluster clusterSettings;
 
@@ -35,6 +37,9 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        Map<String, String> settingsConsistency = new HashMap<String, String>();
+        Map<String, Settings> effectiveSettingsPerNode = new HashMap<String, Settings>();
+
         Map<String, String> mapParams = new HashMap<String, String>();
         params = new MapParams(mapParams);
         mapParams.put("wrap-object", "false");
@@ -48,6 +53,7 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
         }
         builder.endObject();
 
+        boolean first = true;
         builder.startObject("nodes");
         mapParams.put("cluster", "false");
         for (Map.Entry<String, ReloadSettings> entry : getNodesMap().entrySet()) {
@@ -56,6 +62,8 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
             ReloadSettings reloadSettings = entry.getValue();
             Settings effective = effectiveSettings(reloadSettings.getInitialSettings());
             builder.field("effective", effective.getAsMap());
+            effectiveSettingsPerNode.put(nodeId, effective);
+            noteInconsistencies(settingsConsistency, effective, first);
             reloadSettings.toXContent(builder, params);
             Settings desired = desiredSettings(reloadSettings.getFileSettings(), reloadSettings.getEnvironmentSettings());
             builder.field("desired", desired.getAsMap());
@@ -76,12 +84,56 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
             }
             builder.endObject();
             builder.endObject();
+            first = false;
+        }
+        builder.endObject();
+
+        Map<String, String> consistencies = extractConsistencies(settingsConsistency, true);
+        builder.field("consistencies", consistencies);
+
+        builder.startObject("inconsistencies");
+        Map<String, String> inconsistencies = extractConsistencies(settingsConsistency, false);
+        for (String inconsistentKeys : inconsistencies.keySet()) {
+            builder.startObject(inconsistentKeys);
+            for (Map.Entry<String, Settings> entry : effectiveSettingsPerNode.entrySet()) {
+                builder.field(entry.getKey(), entry.getValue().get(inconsistentKeys));
+            }
+            builder.endObject();
         }
         builder.endObject();
 
         builder.endObject();
 
         return builder;
+    }
+
+    private static void noteInconsistencies(Map<String, String> referent, Settings version, boolean isFirst) {
+        for (Map.Entry<String, String> setting : version.getAsMap().entrySet()) {
+            String key = setting.getKey();
+            String value = setting.getValue();
+            if (referent.containsKey(key)) {
+                if (value == null && referent.get(key) != null
+                        || value != null && !value.equals(referent.get(key))) {
+                    referent.put(key, INCONSISTENCY);
+                }
+            } else if (isFirst) {
+                referent.put(key, value);
+            } else {
+                referent.put(key, INCONSISTENCY);
+            }
+        }
+    }
+
+    private static Map<String, String> extractConsistencies(Map<String, String> referent, boolean returnConsistencies) {
+        Map<String, String> rtn = new HashMap<String, String>();
+        for (Map.Entry<String, String> entry : referent.entrySet())
+            if (isConsistent(entry.getValue()) == returnConsistencies)
+                rtn.put(entry.getKey(), entry.getValue());
+        return rtn;
+    }
+
+    private static boolean isConsistent(String value) {
+        return value != INCONSISTENCY;
     }
 
     public Settings effectiveSettingsForNode(Settings nodeId) {
