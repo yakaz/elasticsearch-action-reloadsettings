@@ -136,8 +136,10 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params) throws IOException {
+        boolean wrapObject = params.paramAsBoolean("wrap-object", true);
         boolean cluster = params.paramAsBoolean("cluster", false);
-        builder.startObject();
+        if (wrapObject)
+            builder.startObject();
         if (cluster) {
             builder.field("node", nodeSettings.getAsMap());
             builder.field("transient", transientSettings.getAsMap());
@@ -147,7 +149,8 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
             builder.field("file", fileSettings.getAsMap());
             builder.field("environment", environmentSettings.getAsMap());
         }
-        builder.endObject();
+        if (wrapObject)
+            builder.endObject();
         return builder;
     }
 

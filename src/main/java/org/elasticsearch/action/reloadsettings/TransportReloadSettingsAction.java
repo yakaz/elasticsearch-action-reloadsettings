@@ -5,6 +5,8 @@ import org.elasticsearch.action.support.nodes.NodeOperationRequest;
 import org.elasticsearch.action.support.nodes.TransportNodesOperationAction;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.settings.ClusterDynamicSettings;
+import org.elasticsearch.cluster.settings.DynamicSettings;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -23,10 +25,14 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 
 public class TransportReloadSettingsAction extends TransportNodesOperationAction<ReloadSettingsRequest, ReloadSettingsResponse, TransportReloadSettingsAction.ReloadSettingsRequest, ReloadSettings> {
 
+    private final DynamicSettings dynamicSettings;
+
     @Inject
     public TransportReloadSettingsAction(Settings settings, ClusterName clusterName, ThreadPool threadPool,
-                                         ClusterService clusterService, TransportService transportService) {
+                                         ClusterService clusterService, TransportService transportService,
+                                         @ClusterDynamicSettings DynamicSettings dynamicSettings) {
         super(settings, clusterName, threadPool, clusterService, transportService);
+        this.dynamicSettings = dynamicSettings;
     }
 
     @Override
@@ -53,7 +59,7 @@ public class TransportReloadSettingsAction extends TransportNodesOperationAction
                 responses.add((ReloadSettings) resp);
             }
         }
-        return new ReloadSettingsResponse(clusterName, responses.toArray(new ReloadSettings[responses.size()]));
+        return new ReloadSettingsResponse(clusterName, responses.toArray(new ReloadSettings[responses.size()]), dynamicSettings);
     }
 
     @Override
@@ -80,7 +86,9 @@ public class TransportReloadSettingsAction extends TransportNodesOperationAction
             nodeResponse.setTransientSettings(clusterService.state().metaData().transientSettings());
             nodeResponse.setPersistentSettings(clusterService.state().metaData().persistentSettings());
         }
-        Settings pSettings = ImmutableSettings.builder().put("name", "{RANDOM}").build(); // neutralize randomly chosen name for response consistency
+        Settings pSettings = ImmutableSettings.builder()
+                .put("name", "{RANDOM}") // neutralize randomly chosen name for response consistency
+                .build();
         Tuple<Settings, Environment> startupConf = InternalSettingsPerparer.prepareSettings(pSettings, true);
         nodeResponse.setFileSettings(startupConf.v1());
         nodeResponse.setEnvironmentSettings(startupConf.v2().settings());

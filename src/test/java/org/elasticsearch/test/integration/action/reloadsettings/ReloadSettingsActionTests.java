@@ -53,13 +53,11 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
     public void testRestEndpoint() throws Exception {
         client("node1").admin().cluster().updateSettings(clusterUpdateSettingsRequest().persistentSettings("{discovery:{zen:{minimum_master_nodes:2}}}")).actionGet();
         client("node1").admin().cluster().updateSettings(clusterUpdateSettingsRequest().transientSettings("{discovery:{zen:{minimum_master_nodes:1}}}")).actionGet();
-        logger.info("NODE 1");
-        String node1 = printSettings(getSettings("node1"));
-        logger.info("NODE 2");
-        String node2 = printSettings(getSettings("node2"));
-        assertThat(node1, notNullValue());
-        assertThat(node2, notNullValue());
-        assertThat(node1.equals(node2), is(true));
+        String node1 = formatSettings(getSettings("node1"));
+        String node2 = formatSettings(getSettings("node2"));
+        logger.debug("NODE 1: " + node1);
+        logger.debug("NODE 2: " + node2);
+        assertThat(node1, equalTo(node2));
     }
 
     protected ReloadSettingsResponse getSettings(String node) {
@@ -68,16 +66,14 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
         return response;
     }
 
-    protected String printSettings(ReloadSettingsResponse response) {
+    protected String formatSettings(ReloadSettingsResponse response) {
         try {
             XContentBuilder builder = XContentFactory.jsonBuilder();
             builder.prettyPrint();
             builder.startObject();
             response.toXContent(builder, ToXContent.EMPTY_PARAMS);
             builder.endObject();
-            String rtn = builder.bytes().toUtf8();
-            logger.debug(rtn);
-            return rtn;
+            return builder.bytes().toUtf8();
         } catch (IOException e) {
             throw new RuntimeException("Could not build string representation of setting", e);
         }
