@@ -17,7 +17,6 @@ import java.io.IOException;
 import static org.elasticsearch.client.Requests.clusterUpdateSettingsRequest;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
