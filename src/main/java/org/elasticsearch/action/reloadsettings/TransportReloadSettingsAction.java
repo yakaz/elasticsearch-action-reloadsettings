@@ -57,11 +57,14 @@ public class TransportReloadSettingsAction extends TransportNodesOperationAction
         final List<ReloadSettings> responses = new ArrayList<ReloadSettings>();
         for (int i = 0; i < nodesResponses.length(); i++) {
             Object resp = nodesResponses.get(i);
-            if (resp instanceof ReloadSettings) {
+            if (resp instanceof ReloadSettings)
                 responses.add((ReloadSettings) resp);
-            }
         }
-        return new ReloadSettingsResponse(clusterName, responses.toArray(new ReloadSettings[responses.size()]), dynamicSettings);
+        ReloadSettings.Cluster clusterResponse = new ReloadSettings.Cluster();
+        clusterResponse.setEffectiveSettings(clusterService.state().metaData().settings());
+        clusterResponse.setTransientSettings(clusterService.state().metaData().transientSettings());
+        clusterResponse.setPersistentSettings(clusterService.state().metaData().persistentSettings());
+        return new ReloadSettingsResponse(clusterName, clusterResponse, responses.toArray(new ReloadSettings[responses.size()]), dynamicSettings);
     }
 
     @Override
@@ -76,18 +79,13 @@ public class TransportReloadSettingsAction extends TransportNodesOperationAction
 
     @Override
     protected ReloadSettings newNodeResponse() {
-        return new ReloadSettings();
+        return new ReloadSettings(null);
     }
 
     @Override
     protected ReloadSettings nodeOperation(ReloadSettingsRequest nodeRequest) throws ElasticSearchException {
         org.elasticsearch.action.reloadsettings.ReloadSettingsRequest request = nodeRequest.request;
         ReloadSettings nodeResponse = new ReloadSettings(clusterService.state().nodes().localNode());
-        if (clusterService.state().nodes().localNodeMaster()) {
-            nodeResponse.setNodeSettings(clusterService.state().metaData().settings());
-            nodeResponse.setTransientSettings(clusterService.state().metaData().transientSettings());
-            nodeResponse.setPersistentSettings(clusterService.state().metaData().persistentSettings());
-        }
         Settings pSettings = ImmutableSettings.builder()
                 .put("name", RANDOM_VALUE_AT_STARTUP) // neutralize randomly chosen name for response consistency
                 .build();

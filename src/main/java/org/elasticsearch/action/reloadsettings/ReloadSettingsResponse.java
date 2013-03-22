@@ -17,24 +17,19 @@ import java.util.Set;
 public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSettings> implements ToXContent {
 
     private final DynamicSettings dynamicSettings;
-    private ReloadSettings clusterSettings;
+    private ReloadSettings.Cluster clusterSettings;
 
     public ReloadSettingsResponse() {
         dynamicSettings = null;
     }
 
-    public ReloadSettingsResponse(ClusterName clusterName, ReloadSettings[] nodes, DynamicSettings dynamicSettings) {
-        super(clusterName, nodes);
+    public ReloadSettingsResponse(ClusterName clusterName, ReloadSettings.Cluster clusterSettings, ReloadSettings[] nodeSettings, DynamicSettings dynamicSettings) {
+        super(clusterName, nodeSettings);
+        this.clusterSettings = clusterSettings;
         this.dynamicSettings = dynamicSettings;
-        for (ReloadSettings reloadSettings : getNodes()) {
-            if (reloadSettings.getNodeSettings() != null) {
-                clusterSettings = reloadSettings;
-                break;
-            }
-        }
     }
 
-    public ReloadSettings getClusterSettings() {
+    public ReloadSettings.Cluster getClusterSettings() {
         return clusterSettings;
     }
 
@@ -42,18 +37,22 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         Map<String, String> mapParams = new HashMap<String, String>();
         params = new MapParams(mapParams);
+        mapParams.put("wrap-object", "false");
 
         builder.startObject("settings");
 
-        builder.field("cluster");
-        mapParams.put("cluster", "true");
-        clusterSettings.toXContent(builder, params);
+        builder.startObject("cluster");
+        if (clusterSettings != null) {
+            mapParams.put("cluster", "true");
+            clusterSettings.toXContent(builder, params);
+        }
+        builder.endObject();
 
         builder.startObject("nodes");
         mapParams.put("cluster", "false");
-        mapParams.put("wrap-object", "false");
         for (Map.Entry<String, ReloadSettings> entry : getNodesMap().entrySet()) {
-            builder.startObject(entry.getKey());
+            String nodeId = entry.getKey();
+            builder.startObject(nodeId);
             ReloadSettings reloadSettings = entry.getValue();
             Settings effective = effectiveSettings(reloadSettings.getInitialSettings());
             builder.field("effective", effective.getAsMap());
@@ -90,7 +89,7 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
     }
 
     public Settings effectiveSettings(Settings initialSettings) {
-        return effectiveSettings(clusterSettings.getNodeSettings(), initialSettings);
+        return effectiveSettings(clusterSettings.getEffectiveSettings(), initialSettings);
     }
 
     public static Settings effectiveSettings(Settings nodeSettings, Settings initialSettings) {
