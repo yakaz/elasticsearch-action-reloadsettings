@@ -81,20 +81,12 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
 
             builder.field("desired", desired.getAsMap());
 
-            builder.startObject("updateable");
-            for (String key : settingsDifference(effective, desired, true)) {
+            builder.startObject("inconsistencies");
+            for (String key : settingsDifference(effective, desired)) {
                 builder.startObject(key);
                 builder.field("effective", effective.get(key));
                 builder.field("desired", desired.get(key));
-                builder.endObject();
-            }
-            builder.endObject();
-
-            builder.startObject("not_updateable");
-            for (String key : settingsDifference(effective, desired, false)) {
-                builder.startObject(key);
-                builder.field("effective", effective.get(key));
-                builder.field("desired", desired.get(key));
+                builder.field("_updatable", dynamicSettings.hasDynamicSetting(key));
                 builder.endObject();
             }
             builder.endObject();
@@ -164,6 +156,7 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
             for (Map.Entry<String, Settings> entry : settingsPerNode.entrySet()) {
                 builder.field(entry.getKey(), entry.getValue().get(inconsistentKeys));
             }
+            builder.field("_updatable", dynamicSettings.hasDynamicSetting(inconsistentKeys));
             builder.endObject();
         }
         return builder;
@@ -191,7 +184,7 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
                 .build();
     }
 
-    public Set<String> settingsDifference(Settings effectiveSettings, Settings desiredSettings, boolean dynamicallyUpdatable) {
+    public Set<String> settingsDifference(Settings effectiveSettings, Settings desiredSettings) {
         Set<String> rtn = new HashSet<String>();
         for (Map.Entry<String, String> desiredEntry : desiredSettings.getAsMap().entrySet()) {
             String key = desiredEntry.getKey();
@@ -199,8 +192,7 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
             Object effective = effectiveSettings.get(key);
             if (desired == null // unspecified values should not be listed at all
                     || TransportReloadSettingsAction.RANDOM_VALUE_AT_STARTUP.equals(desired) // filter special value
-                    || desired.equals(effective) // no change
-                    || dynamicallyUpdatable != dynamicSettings.hasDynamicSetting(key)) // not the asked dynamic updatability
+                    || desired.equals(effective)) // no change
                 continue;
             rtn.add(key);
         }
