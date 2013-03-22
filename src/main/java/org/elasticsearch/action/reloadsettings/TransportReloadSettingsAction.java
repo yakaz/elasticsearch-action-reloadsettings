@@ -2,8 +2,10 @@ package org.elasticsearch.action.reloadsettings;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.TransportAction;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
@@ -11,18 +13,29 @@ import org.elasticsearch.transport.TransportService;
 
 public class TransportReloadSettingsAction extends TransportAction<ReloadSettingsRequest, ReloadSettingsResponse> {
 
+    private final ClusterService clusterService;
+
     @Inject
     public TransportReloadSettingsAction(Settings settings,
                                          ThreadPool threadPool,
+                                         ClusterService clusterService,
                                          TransportService transportService) {
         super(settings, threadPool);
+        this.clusterService = clusterService;
         transportService.registerHandler(ReloadSettingsAction.NAME, new TransportHandler());
     }
 
     @Override
     protected void doExecute(final ReloadSettingsRequest request, final ActionListener<ReloadSettingsResponse> listener) {
-        // TODO
-        listener.onResponse(new ReloadSettingsResponse());
+        ReloadSettingsResponse response = new ReloadSettingsResponse();
+        response.setNodeSettings(NodeSettingsService.getGlobalSettings());
+        if (clusterService.state().nodes().localNodeMaster()) {
+            response.setTransientSettings(clusterService.state().metaData().transientSettings());
+            response.setPersistentSettings(clusterService.state().metaData().persistentSettings());
+        }
+        response.setFileSettings(null); // TODO
+        response.setInitialSettings(settings);
+        listener.onResponse(response);
     }
 
     private class TransportHandler extends BaseTransportRequestHandler<ReloadSettingsRequest> {

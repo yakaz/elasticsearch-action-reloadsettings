@@ -47,9 +47,15 @@ public class RestReloadSettingsAction extends BaseRestHandler {
                 try {
                     XContentBuilder builder = RestXContentBuilder.restContentBuilder(request);
 
-                    // TODO Build answer
                     builder.startObject();
                     builder.field(Fields.OK, true); // XXX
+                    builder.startObject("settings");
+                    builder.field("node", response.getNodeSettings());
+                    builder.field("transient", response.getTransientSettings());
+                    builder.field("persistent", response.getPersistentSettings());
+                    builder.field("initial", response.getInitialSettings());
+                    builder.field("file", response.getFileSettings());
+                    builder.endObject();
                     builder.endObject();
 
                     channel.sendResponse(new XContentRestResponse(request, OK, builder));

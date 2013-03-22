@@ -1,13 +1,18 @@
 package org.elasticsearch.test.integration.action.reloadsettings;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.reloadsettings.ReloadSettingsResponse;
 import org.elasticsearch.client.ReloadSettingsClient;
 import org.elasticsearch.client.ReloadSettingsClientWrapper;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.integration.AbstractNodesTests;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import static org.elasticsearch.client.Requests.clusterStateRequest;
+import static org.elasticsearch.client.Requests.clusterUpdateSettingsRequest;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -23,8 +28,8 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
     @BeforeMethod
     public void startCluster() throws Exception {
         logger.info("--> starting 2 nodes");
-        startNode("node1");
-        startNode("node2");
+        startNode("node1", ImmutableSettings.settingsBuilder().put("discovery.zen.minimum_master_nodes", 1));
+        startNode("node2", ImmutableSettings.settingsBuilder().put("discovery.zen.minimum_master_nodes", 2));
 
         logger.info("--> creating an index with no replicas");
         client("node1").admin().indices().prepareCreate("test")
@@ -43,8 +48,35 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
 
     @Test
     public void testRestEndpoint() throws Exception {
-        ReloadSettingsResponse response = reloadSettingsClient("node1").prepareReloadSettings().execute().actionGet();
+        client("node1").admin().cluster().updateSettings(clusterUpdateSettingsRequest().persistentSettings("{discovery:{zen:{minimum_master_nodes:2}}}")).actionGet();
+        client("node1").admin().cluster().updateSettings(clusterUpdateSettingsRequest().transientSettings("{discovery:{zen:{minimum_master_nodes:1}}}")).actionGet();
+        System.out.println("\nNODE 1\n======\n");
+        printSettings(getSettings("node1"));
+        System.out.println("\nNODE 2\n======\n");
+        printSettings(getSettings("node2"));
+    }
+
+    protected ReloadSettingsResponse getSettings(String node) {
+        ReloadSettingsResponse response = reloadSettingsClient(node).prepareReloadSettings().execute().actionGet();
         assertThat(response, notNullValue());
+        return response;
+    }
+
+    protected void printSettings(ReloadSettingsResponse response) {
+        printSetting("Node",        response.getNodeSettings());
+        printSetting("Transient",   response.getTransientSettings());
+        printSetting("Persistent",  response.getPersistentSettings());
+        printSetting("Initial",     response.getInitialSettings());
+        printSetting("File",        response.getFileSettings());
+    }
+
+    protected void printSetting(String name, Settings setting) {
+        if (setting == null) {
+            System.out.println(name + " (absent)\n");
+        } else {
+            System.out.println(name + " (" + setting.getAsMap().size() + ")");
+            System.out.println(setting.toDelimitedString('\n'));
+        }
     }
 
 }

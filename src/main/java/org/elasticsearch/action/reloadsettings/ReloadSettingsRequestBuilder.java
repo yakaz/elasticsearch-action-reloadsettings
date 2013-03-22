@@ -19,7 +19,6 @@ public class ReloadSettingsRequestBuilder extends ActionRequestBuilder<ReloadSet
 
     @Override
     protected void doExecute(ActionListener<ReloadSettingsResponse> listener) {
-        // TODO
         reloadSettingsClientWrapper.reloadSettings(request, listener);
     }
 
