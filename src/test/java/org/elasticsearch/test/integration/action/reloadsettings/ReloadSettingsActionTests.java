@@ -54,8 +54,7 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
         client("node1").admin().cluster().updateSettings(clusterUpdateSettingsRequest().transientSettings("{discovery:{zen:{minimum_master_nodes:1}}}")).actionGet();
         String node1 = formatSettings(getSettings("node1"));
         String node2 = formatSettings(getSettings("node2"));
-        logger.debug("NODE 1: " + node1);
-        logger.debug("NODE 2: " + node2);
+        logger.debug(node1);
         assertThat(node1, equalTo(node2));
     }
 
