@@ -9,9 +9,9 @@ import org.elasticsearch.action.reloadsettings.ReloadSettingsResponse;
 
 public class ReloadSettingsClientWrapper implements ReloadSettingsClient {
 
-    protected final Client client;
+    protected final ClusterAdminClient client;
 
-    public ReloadSettingsClientWrapper(Client client) {
+    public ReloadSettingsClientWrapper(ClusterAdminClient client) {
         this.client = client;
     }
 

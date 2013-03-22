@@ -1,79 +1,53 @@
 package org.elasticsearch.action.reloadsettings;
 
-import org.elasticsearch.action.ActionResponse;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.action.support.nodes.NodesOperationResponse;
+import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
-public class ReloadSettingsResponse extends ActionResponse {
+public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSettings> implements ToXContent {
 
-    private Settings nodeSettings;
-    private Settings transientSettings;
-    private Settings persistentSettings;
-    private Settings fileSettings;
-    private Settings initialSettings;
-
-    public Settings getNodeSettings() {
-        return nodeSettings;
+    public ReloadSettingsResponse() {
     }
 
-    public void setNodeSettings(Settings nodeSettings) {
-        this.nodeSettings = nodeSettings;
-    }
-
-    public Settings getTransientSettings() {
-        return transientSettings;
-    }
-
-    public void setTransientSettings(Settings transientSettings) {
-        this.transientSettings = transientSettings;
-    }
-
-    public Settings getPersistentSettings() {
-        return persistentSettings;
-    }
-
-    public void setPersistentSettings(Settings persistentSettings) {
-        this.persistentSettings = persistentSettings;
-    }
-
-    public Settings getFileSettings() {
-        return fileSettings;
-    }
-
-    public void setFileSettings(Settings fileSettings) {
-        this.fileSettings = fileSettings;
-    }
-
-    public Settings getInitialSettings() {
-        return initialSettings;
-    }
-
-    public void setInitialSettings(Settings initialSettings) {
-        this.initialSettings = initialSettings;
+    public ReloadSettingsResponse(ClusterName clusterName, ReloadSettings[] nodes) {
+        super(clusterName, nodes);
     }
 
     @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        nodeSettings = ImmutableSettings.readSettingsFromStream(in);
-        transientSettings = ImmutableSettings.readSettingsFromStream(in);
-        persistentSettings = ImmutableSettings.readSettingsFromStream(in);
-        fileSettings = ImmutableSettings.readSettingsFromStream(in);
-        initialSettings = ImmutableSettings.readSettingsFromStream(in);
-    }
+    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        ReloadSettings clusterSettings = null;
+        for (ReloadSettings reloadSettings : getNodes()) {
+            if (reloadSettings.getNodeSettings() != null) {
+                clusterSettings = reloadSettings;
+                break;
+            }
+        }
 
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        ImmutableSettings.writeSettingsToStream(nodeSettings, out);
-        ImmutableSettings.writeSettingsToStream(transientSettings, out);
-        ImmutableSettings.writeSettingsToStream(persistentSettings, out);
-        ImmutableSettings.writeSettingsToStream(fileSettings, out);
-        ImmutableSettings.writeSettingsToStream(initialSettings, out);
+        Map<String, String> mapParams = new HashMap<String, String>();
+        params = new MapParams(mapParams);
+
+        builder.startObject("settings");
+
+        builder.field("cluster");
+        mapParams.put("cluster", "true");
+        clusterSettings.toXContent(builder, params);
+
+        builder.startObject("nodes");
+        mapParams.put("cluster", "false");
+        for (Map.Entry<String, ReloadSettings> entry : getNodesMap().entrySet()) {
+            builder.field(entry.getKey());
+            entry.getValue().toXContent(builder, params);
+        }
+        builder.endObject();
+
+        builder.endObject();
+
+        return builder;
     }
 
 }

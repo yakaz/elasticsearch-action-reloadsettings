@@ -1,9 +1,9 @@
 package org.elasticsearch.action.reloadsettings;
 
-import org.elasticsearch.action.Action;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.action.admin.cluster.ClusterAction;
+import org.elasticsearch.client.ClusterAdminClient;
 
-public class ReloadSettingsAction extends Action<ReloadSettingsRequest, ReloadSettingsResponse, ReloadSettingsRequestBuilder> {
+public class ReloadSettingsAction extends ClusterAction<ReloadSettingsRequest, ReloadSettingsResponse, ReloadSettingsRequestBuilder> {
 
     public static final ReloadSettingsAction INSTANCE = new ReloadSettingsAction();
     public static final String NAME = "reloadsettings";
@@ -13,7 +13,7 @@ public class ReloadSettingsAction extends Action<ReloadSettingsRequest, ReloadSe
     }
 
     @Override
-    public ReloadSettingsRequestBuilder newRequestBuilder(Client client) {
+    public ReloadSettingsRequestBuilder newRequestBuilder(ClusterAdminClient client) {
         return new ReloadSettingsRequestBuilder(client);
     }
 

@@ -1,15 +1,14 @@
 package org.elasticsearch.action.reloadsettings;
 
-import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.ActionRequestValidationException;
+import org.elasticsearch.action.support.nodes.NodesOperationRequest;
 
-public class ReloadSettingsRequest extends ActionRequest<ReloadSettingsRequest> {
+public class ReloadSettingsRequest extends NodesOperationRequest<ReloadSettingsRequest> {
 
-    // TODO
+    public ReloadSettingsRequest() {
+    }
 
-    @Override
-    public ActionRequestValidationException validate() {
-        return null;
+    public ReloadSettingsRequest(String... nodesIds) {
+        super(nodesIds);
     }
 
 }

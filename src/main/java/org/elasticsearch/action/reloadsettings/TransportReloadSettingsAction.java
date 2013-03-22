@@ -1,79 +1,116 @@
 package org.elasticsearch.action.reloadsettings;
 
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.TransportAction;
+import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.action.support.nodes.NodeOperationRequest;
+import org.elasticsearch.action.support.nodes.TransportNodesOperationAction;
+import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.BaseTransportRequestHandler;
-import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
-public class TransportReloadSettingsAction extends TransportAction<ReloadSettingsRequest, ReloadSettingsResponse> {
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 
-    private final ClusterService clusterService;
+public class TransportReloadSettingsAction extends TransportNodesOperationAction<ReloadSettingsRequest, ReloadSettingsResponse, TransportReloadSettingsAction.ReloadSettingsRequest, ReloadSettings> {
 
     @Inject
-    public TransportReloadSettingsAction(Settings settings,
-                                         ThreadPool threadPool,
-                                         ClusterService clusterService,
-                                         TransportService transportService) {
-        super(settings, threadPool);
-        this.clusterService = clusterService;
-        transportService.registerHandler(ReloadSettingsAction.NAME, new TransportHandler());
+    public TransportReloadSettingsAction(Settings settings, ClusterName clusterName, ThreadPool threadPool,
+                                         ClusterService clusterService, TransportService transportService) {
+        super(settings, clusterName, threadPool, clusterService, transportService);
     }
 
     @Override
-    protected void doExecute(final ReloadSettingsRequest request, final ActionListener<ReloadSettingsResponse> listener) {
-        ReloadSettingsResponse response = new ReloadSettingsResponse();
-        response.setNodeSettings(NodeSettingsService.getGlobalSettings());
-        if (clusterService.state().nodes().localNodeMaster()) {
-            response.setTransientSettings(clusterService.state().metaData().transientSettings());
-            response.setPersistentSettings(clusterService.state().metaData().persistentSettings());
-        }
-        response.setFileSettings(null); // TODO
-        response.setInitialSettings(settings);
-        listener.onResponse(response);
+    protected String executor() {
+        return ThreadPool.Names.MANAGEMENT;
     }
 
-    private class TransportHandler extends BaseTransportRequestHandler<ReloadSettingsRequest> {
+    @Override
+    protected String transportAction() {
+        return ReloadSettingsAction.NAME;
+    }
 
-        @Override
-        public ReloadSettingsRequest newInstance() {
-            return new ReloadSettingsRequest();
+    @Override
+    protected org.elasticsearch.action.reloadsettings.ReloadSettingsRequest newRequest() {
+        return new org.elasticsearch.action.reloadsettings.ReloadSettingsRequest();
+    }
+
+    @Override
+    protected ReloadSettingsResponse newResponse(org.elasticsearch.action.reloadsettings.ReloadSettingsRequest request, AtomicReferenceArray nodesResponses) {
+        final List<ReloadSettings> responses = new ArrayList<ReloadSettings>();
+        for (int i = 0; i < nodesResponses.length(); i++) {
+            Object resp = nodesResponses.get(i);
+            if (resp instanceof ReloadSettings) {
+                responses.add((ReloadSettings) resp);
+            }
+        }
+        return new ReloadSettingsResponse(clusterName, responses.toArray(new ReloadSettings[responses.size()]));
+    }
+
+    @Override
+    protected ReloadSettingsRequest newNodeRequest() {
+        return new ReloadSettingsRequest();
+    }
+
+    @Override
+    protected ReloadSettingsRequest newNodeRequest(String nodeId, org.elasticsearch.action.reloadsettings.ReloadSettingsRequest request) {
+        return new ReloadSettingsRequest(nodeId, request);
+    }
+
+    @Override
+    protected ReloadSettings newNodeResponse() {
+        return new ReloadSettings();
+    }
+
+    @Override
+    protected ReloadSettings nodeOperation(ReloadSettingsRequest nodeRequest) throws ElasticSearchException {
+        org.elasticsearch.action.reloadsettings.ReloadSettingsRequest request = nodeRequest.request;
+        ReloadSettings nodeResponse = new ReloadSettings(clusterService.state().nodes().localNode());
+        if (clusterService.state().nodes().localNodeMaster()) {
+            nodeResponse.setNodeSettings(clusterService.state().metaData().settings());
+            nodeResponse.setTransientSettings(clusterService.state().metaData().transientSettings());
+            nodeResponse.setPersistentSettings(clusterService.state().metaData().persistentSettings());
+        }
+        nodeResponse.setFileSettings(ImmutableSettings.Builder.EMPTY_SETTINGS); // TODO
+        nodeResponse.setInitialSettings(settings);
+        return nodeResponse;
+    }
+
+    @Override
+    protected boolean accumulateExceptions() {
+        return false;
+    }
+
+    static class ReloadSettingsRequest extends NodeOperationRequest {
+
+        org.elasticsearch.action.reloadsettings.ReloadSettingsRequest request;
+
+        ReloadSettingsRequest() {
+        }
+
+        ReloadSettingsRequest(String nodeId, org.elasticsearch.action.reloadsettings.ReloadSettingsRequest request) {
+            super(request, nodeId);
+            this.request = request;
         }
 
         @Override
-        public String executor() {
-            return ThreadPool.Names.SAME;
+        public void readFrom(StreamInput in) throws IOException {
+            super.readFrom(in);
+            request = new org.elasticsearch.action.reloadsettings.ReloadSettingsRequest();
+            request.readFrom(in);
         }
 
         @Override
-        public void messageReceived(ReloadSettingsRequest request, final TransportChannel channel) throws Exception {
-            // no need to have a threaded listener since we just send back a response
-            request.listenerThreaded(false);
-            doExecute(request, new ActionListener<ReloadSettingsResponse>() {
-
-                public void onResponse(ReloadSettingsResponse result) {
-                    try {
-                        channel.sendResponse(result);
-                    } catch (Exception e) {
-                        onFailure(e);
-                    }
-                }
-
-                public void onFailure(Throwable e) {
-                    try {
-                        channel.sendResponse(e);
-                    } catch (Exception e1) {
-                        logger.warn("Failed to send response for get", e1);
-                    }
-                }
-            });
+        public void writeTo(StreamOutput out) throws IOException {
+            super.writeTo(out);
+            request.writeTo(out);
         }
-
     }
 
 }

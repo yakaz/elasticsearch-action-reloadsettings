@@ -1,20 +1,23 @@
 package org.elasticsearch.test.integration.action.reloadsettings;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.reloadsettings.ReloadSettingsResponse;
 import org.elasticsearch.client.ReloadSettingsClient;
 import org.elasticsearch.client.ReloadSettingsClientWrapper;
 import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.test.integration.AbstractNodesTests;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import static org.elasticsearch.client.Requests.clusterStateRequest;
+import java.io.IOException;
+
 import static org.elasticsearch.client.Requests.clusterUpdateSettingsRequest;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -22,7 +25,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class ReloadSettingsActionTests extends AbstractNodesTests {
 
     public ReloadSettingsClient reloadSettingsClient(String id) {
-        return new ReloadSettingsClientWrapper(client(id));
+        return new ReloadSettingsClientWrapper(client(id).admin().cluster());
     }
 
     @BeforeMethod
@@ -50,10 +53,13 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
     public void testRestEndpoint() throws Exception {
         client("node1").admin().cluster().updateSettings(clusterUpdateSettingsRequest().persistentSettings("{discovery:{zen:{minimum_master_nodes:2}}}")).actionGet();
         client("node1").admin().cluster().updateSettings(clusterUpdateSettingsRequest().transientSettings("{discovery:{zen:{minimum_master_nodes:1}}}")).actionGet();
-        System.out.println("\nNODE 1\n======\n");
-        printSettings(getSettings("node1"));
-        System.out.println("\nNODE 2\n======\n");
-        printSettings(getSettings("node2"));
+        logger.info("NODE 1");
+        String node1 = printSettings(getSettings("node1"));
+        logger.info("NODE 2");
+        String node2 = printSettings(getSettings("node2"));
+        assertThat(node1, notNullValue());
+        assertThat(node2, notNullValue());
+        assertThat(node1.equals(node2), is(true));
     }
 
     protected ReloadSettingsResponse getSettings(String node) {
@@ -62,20 +68,18 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
         return response;
     }
 
-    protected void printSettings(ReloadSettingsResponse response) {
-        printSetting("Node",        response.getNodeSettings());
-        printSetting("Transient",   response.getTransientSettings());
-        printSetting("Persistent",  response.getPersistentSettings());
-        printSetting("Initial",     response.getInitialSettings());
-        printSetting("File",        response.getFileSettings());
-    }
-
-    protected void printSetting(String name, Settings setting) {
-        if (setting == null) {
-            System.out.println(name + " (absent)\n");
-        } else {
-            System.out.println(name + " (" + setting.getAsMap().size() + ")");
-            System.out.println(setting.toDelimitedString('\n'));
+    protected String printSettings(ReloadSettingsResponse response) {
+        try {
+            XContentBuilder builder = XContentFactory.jsonBuilder();
+            builder.prettyPrint();
+            builder.startObject();
+            response.toXContent(builder, ToXContent.EMPTY_PARAMS);
+            builder.endObject();
+            String rtn = builder.bytes().toUtf8();
+            logger.debug(rtn);
+            return rtn;
+        } catch (IOException e) {
+            throw new RuntimeException("Could not build string representation of setting", e);
         }
     }
 

@@ -7,6 +7,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.client.ReloadSettingsClientWrapper;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilderString;
 import org.elasticsearch.rest.BaseRestHandler;
@@ -15,6 +16,7 @@ import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.XContentRestResponse;
 import org.elasticsearch.rest.XContentThrowableRestResponse;
+import org.elasticsearch.rest.action.support.RestActions;
 import org.elasticsearch.rest.action.support.RestXContentBuilder;
 
 import java.io.IOException;
@@ -30,16 +32,15 @@ public class RestReloadSettingsAction extends BaseRestHandler {
     @Inject
     public RestReloadSettingsAction(Settings settings, Client client, RestController controller) {
         super(settings, client);
-        reloadSettingsClientWrapper = new ReloadSettingsClientWrapper(client);
-        controller.registerHandler(GET, "/_cluster/settings/reloadsettings", this);
-        controller.registerHandler(POST, "/_cluster/settings/reloadsettings", this);
+        reloadSettingsClientWrapper = new ReloadSettingsClientWrapper(client.admin().cluster());
+        controller.registerHandler(GET, "/_nodes/settings/reload", this);
+        controller.registerHandler(POST, "/_nodes/{nodeId}/settings/reload", this);
     }
 
     @Override
     public void handleRequest(final RestRequest request, final RestChannel channel) {
-        ReloadSettingsRequest reloadSettingsRequest = new ReloadSettingsRequest();
-
-        // TODO Parsing
+        String[] nodesIds = RestActions.splitNodes(request.param("nodeId"));
+        ReloadSettingsRequest reloadSettingsRequest = new ReloadSettingsRequest(nodesIds);
 
         reloadSettingsClientWrapper.reloadSettings(reloadSettingsRequest, new ActionListener<ReloadSettingsResponse>() {
             @Override
@@ -49,13 +50,7 @@ public class RestReloadSettingsAction extends BaseRestHandler {
 
                     builder.startObject();
                     builder.field(Fields.OK, true); // XXX
-                    builder.startObject("settings");
-                    builder.field("node", response.getNodeSettings());
-                    builder.field("transient", response.getTransientSettings());
-                    builder.field("persistent", response.getPersistentSettings());
-                    builder.field("initial", response.getInitialSettings());
-                    builder.field("file", response.getFileSettings());
-                    builder.endObject();
+                    response.toXContent(builder, ToXContent.EMPTY_PARAMS);
                     builder.endObject();
 
                     channel.sendResponse(new XContentRestResponse(request, OK, builder));
