@@ -8,10 +8,13 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentBuilderString;
 
 import java.io.IOException;
 
 public class ReloadSettings extends NodeOperationResponse implements ToXContent {
+
+    public static final String TOXCONTENT_PARAM_WRAP_OBJECT = "wrap_object";
 
     private Settings initialSettings;
 
@@ -65,12 +68,12 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params) throws IOException {
-        boolean wrapObject = params.paramAsBoolean("wrap-object", true);
+        boolean wrapObject = params.paramAsBoolean(TOXCONTENT_PARAM_WRAP_OBJECT, true);
         if (wrapObject)
             builder.startObject();
-        builder.field("initial", initialSettings.getAsMap());
-        builder.field("file", fileSettings.getAsMap());
-        builder.field("environment", environmentSettings.getAsMap());
+        builder.field(Fields.INITIAL, initialSettings.getAsMap());
+        builder.field(Fields.FILE, fileSettings.getAsMap());
+        builder.field(Fields.ENVIRONMENT, environmentSettings.getAsMap());
         if (wrapObject)
             builder.endObject();
         return builder;
@@ -128,17 +131,26 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
 
         @Override
         public XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params) throws IOException {
-            boolean wrapObject = params.paramAsBoolean("wrap-object", true);
+            boolean wrapObject = params.paramAsBoolean(TOXCONTENT_PARAM_WRAP_OBJECT, true);
             if (wrapObject)
                 builder.startObject();
-            builder.field("effective", effectiveSettings.getAsMap());
-            builder.field("transient", transientSettings.getAsMap());
-            builder.field("persistent", persistentSettings.getAsMap());
+            builder.field(Fields.EFFECTIVE, effectiveSettings.getAsMap());
+            builder.field(Fields.TRANSIENT, transientSettings.getAsMap());
+            builder.field(Fields.PERSISTENT, persistentSettings.getAsMap());
             if (wrapObject)
                 builder.endObject();
             return builder;
         }
 
+    }
+
+    static final class Fields {
+        static final XContentBuilderString EFFECTIVE = new XContentBuilderString("effective");
+        static final XContentBuilderString TRANSIENT = new XContentBuilderString("transient");
+        static final XContentBuilderString PERSISTENT = new XContentBuilderString("persistent");
+        static final XContentBuilderString INITIAL = new XContentBuilderString("initial");
+        static final XContentBuilderString FILE = new XContentBuilderString("file");
+        static final XContentBuilderString ENVIRONMENT = new XContentBuilderString("environment");
     }
 
 }

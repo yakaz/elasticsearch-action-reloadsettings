@@ -7,6 +7,7 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentBuilderString;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -46,20 +47,18 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
 
         Map<String, String> mapParams = new HashMap<String, String>();
         params = new MapParams(mapParams);
-        mapParams.put("wrap-object", "false");
+        mapParams.put(ReloadSettings.TOXCONTENT_PARAM_WRAP_OBJECT, Boolean.toString(false));
 
-        builder.startObject("settings");
+        builder.startObject(Fields.SETTINGS);
 
-        builder.startObject("cluster");
+        builder.startObject(Fields.CLUSTER);
         if (clusterSettings != null) {
-            mapParams.put("cluster", "true");
             clusterSettings.toXContent(builder, params);
         }
         builder.endObject();
 
         boolean first = true;
-        builder.startObject("nodes");
-        mapParams.put("cluster", "false");
+        builder.startObject(Fields.NODES);
         for (Map.Entry<String, ReloadSettings> entry : getNodesMap().entrySet()) {
             String nodeId = entry.getKey();
             ReloadSettings reloadSettings = entry.getValue();
@@ -75,18 +74,18 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
 
             builder.startObject(nodeId);
 
-            builder.field("effective", effective.getAsMap());
+            builder.field(Fields.EFFECTIVE, effective.getAsMap());
 
             reloadSettings.toXContent(builder, params);
 
-            builder.field("desired", desired.getAsMap());
+            builder.field(Fields.DESIRED, desired.getAsMap());
 
-            builder.startObject("inconsistencies");
+            builder.startObject(Fields.INCONSISTENCIES);
             for (String key : settingsDifference(effective, desired)) {
                 builder.startObject(key);
-                builder.field("effective", effective.get(key));
-                builder.field("desired", desired.get(key));
-                builder.field("_updatable", dynamicSettings.hasDynamicSetting(key));
+                builder.field(Fields.EFFECTIVE, effective.get(key));
+                builder.field(Fields.DESIRED, desired.get(key));
+                builder.field(Fields.UPDATABLE, dynamicSettings.hasDynamicSetting(key));
                 builder.endObject();
             }
             builder.endObject();
@@ -96,20 +95,20 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
         }
         builder.endObject();
 
-        builder.startObject("consistencies");
-        builder.field("effective", extractConsistencies(effectiveSettingsConsistency, true));
-        builder.field("initial", extractConsistencies(initialSettingsConsistency, true));
-        builder.field("desired", extractConsistencies(desiredSettingsConsistency, true));
+        builder.startObject(Fields.CONSISTENCIES);
+        builder.field(Fields.EFFECTIVE, extractConsistencies(effectiveSettingsConsistency, true));
+        builder.field(Fields.INITIAL, extractConsistencies(initialSettingsConsistency, true));
+        builder.field(Fields.DESIRED, extractConsistencies(desiredSettingsConsistency, true));
         builder.endObject();
 
-        builder.startObject("inconsistencies");
-        builder.startObject("effective");
+        builder.startObject(Fields.INCONSISTENCIES);
+        builder.startObject(Fields.EFFECTIVE);
         buildInconsistency(builder, effectiveSettingsConsistency, effectiveSettingsPerNode);
         builder.endObject();
-        builder.startObject("initial");
+        builder.startObject(Fields.INITIAL);
         buildInconsistency(builder, initialSettingsConsistency, initialSettingsPerNode);
         builder.endObject();
-        builder.startObject("desired");
+        builder.startObject(Fields.DESIRED);
         buildInconsistency(builder, desiredSettingsConsistency, desiredSettingsPerNode);
         builder.endObject();
         builder.endObject();
@@ -156,7 +155,7 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
             for (Map.Entry<String, Settings> entry : settingsPerNode.entrySet()) {
                 builder.field(entry.getKey(), entry.getValue().get(inconsistentKeys));
             }
-            builder.field("_updatable", dynamicSettings.hasDynamicSetting(inconsistentKeys));
+            builder.field(Fields.UPDATABLE, dynamicSettings.hasDynamicSetting(inconsistentKeys));
             builder.endObject();
         }
         return builder;
@@ -197,6 +196,18 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
             rtn.add(key);
         }
         return rtn;
+    }
+
+    static final class Fields {
+        static final XContentBuilderString SETTINGS = new XContentBuilderString("settings");
+        static final XContentBuilderString CLUSTER = new XContentBuilderString("cluster");
+        static final XContentBuilderString NODES = new XContentBuilderString("nodes");
+        static final XContentBuilderString EFFECTIVE = new XContentBuilderString("effective");
+        static final XContentBuilderString INITIAL = ReloadSettings.Fields.INITIAL;
+        static final XContentBuilderString DESIRED = new XContentBuilderString("desired");
+        static final XContentBuilderString CONSISTENCIES = new XContentBuilderString("consistencies");
+        static final XContentBuilderString INCONSISTENCIES = new XContentBuilderString("inconsistencies");
+        static final XContentBuilderString UPDATABLE = new XContentBuilderString("_updatable");
     }
 
 }
