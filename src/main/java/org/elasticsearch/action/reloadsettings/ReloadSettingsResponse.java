@@ -115,10 +115,11 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
         return result;
     }
 
-    @Override
-    public String toString() {
+    public String toString(boolean pretty) {
         try {
             XContentBuilder builder = XContentFactory.jsonBuilder();
+            if (pretty)
+                builder.prettyPrint();
             builder.startObject();
             toXContent(builder, ToXContent.EMPTY_PARAMS);
             builder.endObject();
@@ -126,6 +127,11 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
         } catch (IOException e) {
             throw new RuntimeException("Could not build string representation of setting", e);
         }
+    }
+
+    @Override
+    public String toString() {
+        return toString(false);
     }
 
     @Override

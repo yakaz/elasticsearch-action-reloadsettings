@@ -11,6 +11,8 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.integration.AbstractNodesTests;
 import org.testng.annotations.Test;
 
+import java.io.File;
+import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -98,6 +100,45 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
 
         inconsistency = response.getInconsistentEffectiveSettings().get("discovery.zen.minimum_master_nodes");
         assertThat(inconsistency, nullValue());
+    }
+
+    @Test
+    public void testUpdateConfigFile() throws Exception {
+        File tmp = File.createTempFile("elasticsearch-test-", "-config.yml");
+        PrintStream ps = new PrintStream(tmp);
+        ps.println("discovery.zen.minimum_master_nodes: 1");
+        ps.close();
+
+        String oldEsConfig = System.getProperty("es.config");
+        System.setProperty("es.config", tmp.getAbsolutePath());
+
+        logger.info("--> starting 1 node");
+        startNode("node1", ImmutableSettings.settingsBuilder().put("config.ignore_system_properties", false));
+
+        ClusterHealthResponse clusterHealthResponse = client("node1").admin().cluster().prepareHealth().setWaitForGreenStatus().execute().actionGet();
+        assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
+
+        ReloadSettingsResponse response = getSettings("node1");
+        logger.info(response.toString(true));
+        assertThat(response.getNodes()[0].getEffectiveSettings().get("discovery.zen.minimum_master_nodes"), equalTo("1"));
+        assertThat(response.getNodes()[0].getInconsistentSettings().get("discovery.zen.minimum_master_nodes"), nullValue());
+
+        ps = new PrintStream(tmp);
+        ps.println("discovery.zen.minimum_master_nodes: 2");
+        ps.close();
+
+        response = getSettings("node1");
+        logger.info(response.toString(true));
+        assertThat(response.getNodes()[0].getEffectiveSettings().get("discovery.zen.minimum_master_nodes"), equalTo("1"));
+        NodeInconsistency inconsistency = response.getNodes()[0].getInconsistentSettings().get("discovery.zen.minimum_master_nodes");
+        assertThat(inconsistency, notNullValue());
+        assertThat(inconsistency.getEffective(), equalTo("1"));
+        assertThat(inconsistency.getDesired(), equalTo("2"));
+
+        if (oldEsConfig == null)
+            System.clearProperty("es.config");
+        else
+            System.setProperty("es.config", oldEsConfig);
     }
 
     protected ReloadSettingsResponse getSettings(String node) {
