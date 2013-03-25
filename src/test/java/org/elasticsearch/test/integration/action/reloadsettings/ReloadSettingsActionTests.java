@@ -38,6 +38,8 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
         ClusterHealthResponse clusterHealthResponse = client("node1").admin().cluster().prepareHealth().setWaitForGreenStatus().execute().actionGet();
         assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
 
+        // Note that this is actually an artifact of the fact that we cannot keep the initial environment
+
         ReloadSettingsResponse reloadSettings = getSettings("node1");
         Settings effective = reloadSettings.effectiveSettingsForNode(reloadSettings.getNodes()[0].getNode().id());
         assertThat(effective.get("cluster.name"), startsWith("test-cluster-"));
@@ -117,6 +119,11 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
 
         ClusterHealthResponse clusterHealthResponse = client("node1").admin().cluster().prepareHealth().setWaitForGreenStatus().execute().actionGet();
         assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
+
+        // We should be able to get rid of the following call
+        //   System.clearProperty("es.config");
+        // But see TransportReloadSettingsAction's call to InternalSettingsPerparer.prepareSettings():
+        // the original environment is not preserved.
 
         ReloadSettingsResponse response = getSettings("node1");
         logger.info(response.toString(true));

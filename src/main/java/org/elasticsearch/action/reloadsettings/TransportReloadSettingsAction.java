@@ -86,10 +86,17 @@ public class TransportReloadSettingsAction extends TransportNodesOperationAction
     protected ReloadSettings nodeOperation(ReloadSettingsRequest nodeRequest) throws ElasticSearchException {
         org.elasticsearch.action.reloadsettings.ReloadSettingsRequest request = nodeRequest.request;
         ReloadSettings nodeResponse = new ReloadSettings(clusterService.state().nodes().localNode());
+
+        // Reconstruct the initial environment
+        // This assumes that the nodes have been built using Bootstrap,
+        // with an empty pSettings parameter to InternalSettingsPerparer.prepareSettings().
+        // We cannot have the original value of pSettings as InternalSettingsPerparer.prepareSettings()
+        // erases the initial environment before returning.
         Settings pSettings = ImmutableSettings.builder()
                 .put("name", RANDOM_VALUE_AT_STARTUP) // neutralize randomly chosen name for response consistency
                 .build();
         Tuple<Settings, Environment> startupConf = InternalSettingsPerparer.prepareSettings(pSettings, true);
+
         nodeResponse.setFileSettings(startupConf.v1());
         nodeResponse.setEnvironmentSettings(startupConf.v2().settings());
         nodeResponse.setInitialSettings(settings);
