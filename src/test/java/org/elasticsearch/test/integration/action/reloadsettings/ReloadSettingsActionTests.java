@@ -2,6 +2,7 @@ package org.elasticsearch.test.integration.action.reloadsettings;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.reloadsettings.ReloadSettingsResponse;
+import org.elasticsearch.action.reloadsettings.inconsistencies.ClusterInconsistency;
 import org.elasticsearch.action.reloadsettings.inconsistencies.NodeInconsistency;
 import org.elasticsearch.client.ReloadSettingsClient;
 import org.elasticsearch.client.ReloadSettingsClientWrapper;
@@ -10,8 +11,13 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.integration.AbstractNodesTests;
 import org.testng.annotations.Test;
 
+import java.util.Arrays;
+import java.util.HashSet;
+
+import static org.elasticsearch.client.Requests.clusterUpdateSettingsRequest;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -47,8 +53,8 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
     @Test
     public void testResponseIsConsistentAcrossCluster() throws Exception {
         logger.info("--> starting 2 nodes");
-        startNode("node1", ImmutableSettings.settingsBuilder().put("discovery.zen.minimum_master_nodes", 1));
-        startNode("node2", ImmutableSettings.settingsBuilder().put("discovery.zen.minimum_master_nodes", 2));
+        startNode("node1");
+        startNode("node2");
 
         ClusterHealthResponse clusterHealthResponse = client("node1").admin().cluster().prepareHealth().setWaitForGreenStatus().execute().actionGet();
         assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
@@ -57,6 +63,41 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
         ReloadSettingsResponse node2 = getSettings("node2");
         logger.debug(node1.toString());
         assertThat(node1, equalTo(node2));
+    }
+
+    @Test
+    public void testClusterInconsistencies() throws Exception {
+        logger.info("--> starting 2 nodes");
+        startNode("node1", ImmutableSettings.settingsBuilder().put("discovery.zen.minimum_master_nodes", 1));
+        startNode("node2", ImmutableSettings.settingsBuilder().put("discovery.zen.minimum_master_nodes", 2));
+
+        ClusterHealthResponse clusterHealthResponse = client("node1").admin().cluster().prepareHealth().setWaitForGreenStatus().execute().actionGet();
+        assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
+
+        ReloadSettingsResponse response = getSettings("node1");
+
+        ClusterInconsistency inconsistency = response.getInconsistentInitialSettings().get("discovery.zen.minimum_master_nodes");
+        assertThat(inconsistency, notNullValue());
+        assertThat(new HashSet<String>(inconsistency.values()), equalTo(new HashSet<String>(Arrays.asList("1", "2"))));
+        assertThat(inconsistency.isUpdatable(), equalTo(true));
+
+        inconsistency = response.getInconsistentEffectiveSettings().get("discovery.zen.minimum_master_nodes");
+        assertThat(inconsistency, notNullValue());
+        assertThat(new HashSet<String>(inconsistency.values()), equalTo(new HashSet<String>(Arrays.asList("1", "2"))));
+        assertThat(inconsistency.isUpdatable(), equalTo(true));
+
+        // Now set cluster-wide setting to fix the inconsistency (in effective settings only, not in initial settings)
+        client("node1").admin().cluster().updateSettings(clusterUpdateSettingsRequest().transientSettings("{discovery:{zen:{minimum_master_nodes:2}}}")).actionGet();
+
+        response = getSettings("node1");
+
+        inconsistency = response.getInconsistentInitialSettings().get("discovery.zen.minimum_master_nodes");
+        assertThat(inconsistency, notNullValue());
+        assertThat(new HashSet<String>(inconsistency.values()), equalTo(new HashSet<String>(Arrays.asList("1", "2"))));
+        assertThat(inconsistency.isUpdatable(), equalTo(true));
+
+        inconsistency = response.getInconsistentEffectiveSettings().get("discovery.zen.minimum_master_nodes");
+        assertThat(inconsistency, nullValue());
     }
 
     protected ReloadSettingsResponse getSettings(String node) {

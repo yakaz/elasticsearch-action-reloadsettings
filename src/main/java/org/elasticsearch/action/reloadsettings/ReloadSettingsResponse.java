@@ -49,6 +49,30 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
         return clusterSettings;
     }
 
+    public Settings getConsistentEffectiveSettings() {
+        return consistentEffectiveSettings;
+    }
+
+    public Settings getConsistentInitialSettings() {
+        return consistentInitialSettings;
+    }
+
+    public Settings getConsistentDesiredSettings() {
+        return consistentDesiredSettings;
+    }
+
+    public InconsistentSettings<ClusterInconsistency> getInconsistentEffectiveSettings() {
+        return inconsistentEffectiveSettings;
+    }
+
+    public InconsistentSettings<ClusterInconsistency> getInconsistentInitialSettings() {
+        return inconsistentInitialSettings;
+    }
+
+    public InconsistentSettings<ClusterInconsistency> getInconsistentDesiredSettings() {
+        return inconsistentDesiredSettings;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o)
