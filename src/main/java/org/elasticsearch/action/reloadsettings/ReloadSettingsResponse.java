@@ -1,5 +1,8 @@
 package org.elasticsearch.action.reloadsettings;
 
+import org.elasticsearch.action.reloadsettings.inconsistencies.ClusterInconsistency;
+import org.elasticsearch.action.reloadsettings.inconsistencies.InconsistentSettings;
+import org.elasticsearch.action.reloadsettings.inconsistencies.NodeInconsistency;
 import org.elasticsearch.action.support.nodes.NodesOperationResponse;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.settings.DynamicSettings;
@@ -8,8 +11,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilderString;
+import org.elasticsearch.common.xcontent.XContentFactory;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -17,10 +22,17 @@ import java.util.Set;
 
 public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSettings> implements ToXContent {
 
-    private static final String INCONSISTENCY = new String();
+    private static final String INCONSISTENCY = new String(); // unique pointer
 
     private final DynamicSettings dynamicSettings;
+
     private ReloadSettings.Cluster clusterSettings;
+    private Settings consistentEffectiveSettings;
+    private Settings consistentInitialSettings;
+    private Settings consistentDesiredSettings;
+    private InconsistentSettings<ClusterInconsistency> inconsistentEffectiveSettings;
+    private InconsistentSettings<ClusterInconsistency> inconsistentInitialSettings;
+    private InconsistentSettings<ClusterInconsistency> inconsistentDesiredSettings;
 
     public ReloadSettingsResponse() {
         dynamicSettings = null;
@@ -30,6 +42,7 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
         super(clusterName, nodeSettings);
         this.clusterSettings = clusterSettings;
         this.dynamicSettings = dynamicSettings;
+        calculateMetaSettings();
     }
 
     public ReloadSettings.Cluster getClusterSettings() {
@@ -37,7 +50,108 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+
+        ReloadSettingsResponse that = (ReloadSettingsResponse) o;
+
+        if (!getNodesMap().equals(that.getNodesMap()))
+            return false;
+        if (clusterSettings != null ? !clusterSettings.equals(that.clusterSettings) : that.clusterSettings != null)
+            return false;
+        if (consistentDesiredSettings != null ? !consistentDesiredSettings.equals(that.consistentDesiredSettings) : that.consistentDesiredSettings != null)
+            return false;
+        if (consistentEffectiveSettings != null ? !consistentEffectiveSettings.equals(that.consistentEffectiveSettings) : that.consistentEffectiveSettings != null)
+            return false;
+        if (consistentInitialSettings != null ? !consistentInitialSettings.equals(that.consistentInitialSettings) : that.consistentInitialSettings != null)
+            return false;
+        if (inconsistentDesiredSettings != null ? !inconsistentDesiredSettings.equals(that.inconsistentDesiredSettings) : that.inconsistentDesiredSettings != null)
+            return false;
+        if (inconsistentEffectiveSettings != null ? !inconsistentEffectiveSettings.equals(that.inconsistentEffectiveSettings) : that.inconsistentEffectiveSettings != null)
+            return false;
+        if (inconsistentInitialSettings != null ? !inconsistentInitialSettings.equals(that.inconsistentInitialSettings) : that.inconsistentInitialSettings != null)
+            return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Arrays.hashCode(getNodes());
+        result = 31 * result + (clusterSettings != null ? clusterSettings.hashCode() : 0);
+        result = 31 * result + (consistentEffectiveSettings != null ? consistentEffectiveSettings.hashCode() : 0);
+        result = 31 * result + (consistentInitialSettings != null ? consistentInitialSettings.hashCode() : 0);
+        result = 31 * result + (consistentDesiredSettings != null ? consistentDesiredSettings.hashCode() : 0);
+        result = 31 * result + (inconsistentEffectiveSettings != null ? inconsistentEffectiveSettings.hashCode() : 0);
+        result = 31 * result + (inconsistentInitialSettings != null ? inconsistentInitialSettings.hashCode() : 0);
+        result = 31 * result + (inconsistentDesiredSettings != null ? inconsistentDesiredSettings.hashCode() : 0);
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        try {
+            XContentBuilder builder = XContentFactory.jsonBuilder();
+            builder.startObject();
+            toXContent(builder, ToXContent.EMPTY_PARAMS);
+            builder.endObject();
+            return builder.string();
+        } catch (IOException e) {
+            throw new RuntimeException("Could not build string representation of setting", e);
+        }
+    }
+
+    @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        builder.startObject(Fields.SETTINGS);
+
+        builder.field(Fields.CLUSTER);
+        if (clusterSettings == null) {
+            builder.startObject().endObject();
+        } else {
+            clusterSettings.toXContent(builder, params);
+        }
+
+        builder.startObject(Fields.NODES);
+        for (Map.Entry<String, ReloadSettings> entry : getNodesMap().entrySet()) {
+            builder.field(entry.getKey());
+            entry.getValue().toXContent(builder, params);
+        }
+        builder.endObject();
+
+        builder.startObject(Fields.CONSISTENCIES);
+        if (consistentEffectiveSettings != null)
+            builder.field(Fields.EFFECTIVE, consistentEffectiveSettings.getAsMap());
+        if (consistentInitialSettings != null)
+            builder.field(Fields.INITIAL, consistentInitialSettings.getAsMap());
+        if (consistentDesiredSettings != null)
+            builder.field(Fields.DESIRED, consistentDesiredSettings.getAsMap());
+        builder.endObject();
+
+        builder.startObject(Fields.INCONSISTENCIES);
+        if (inconsistentEffectiveSettings != null) {
+            builder.field(Fields.EFFECTIVE);
+            inconsistentEffectiveSettings.toXContent(builder, params);
+        }
+        if (inconsistentInitialSettings != null) {
+            builder.field(Fields.INITIAL);
+            inconsistentInitialSettings.toXContent(builder, params);
+        }
+        if (inconsistentDesiredSettings != null) {
+            builder.field(Fields.DESIRED);
+            inconsistentDesiredSettings.toXContent(builder, params);
+        }
+        builder.endObject();
+
+        builder.endObject();
+
+        return builder;
+    }
+
+    private void calculateMetaSettings() {
         Map<String, String> effectiveSettingsConsistency = new HashMap<String, String>();
         Map<String, String> initialSettingsConsistency = new HashMap<String, String>();
         Map<String, String> desiredSettingsConsistency = new HashMap<String, String>();
@@ -45,77 +159,41 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
         Map<String, Settings> initialSettingsPerNode = new HashMap<String, Settings>();
         Map<String, Settings> desiredSettingsPerNode = new HashMap<String, Settings>();
 
-        Map<String, String> mapParams = new HashMap<String, String>();
-        params = new MapParams(mapParams);
-        mapParams.put(ReloadSettings.TOXCONTENT_PARAM_WRAP_OBJECT, Boolean.toString(false));
-
-        builder.startObject(Fields.SETTINGS);
-
-        builder.startObject(Fields.CLUSTER);
-        if (clusterSettings != null) {
-            clusterSettings.toXContent(builder, params);
-        }
-        builder.endObject();
-
         boolean first = true;
-        builder.startObject(Fields.NODES);
         for (Map.Entry<String, ReloadSettings> entry : getNodesMap().entrySet()) {
             String nodeId = entry.getKey();
             ReloadSettings reloadSettings = entry.getValue();
 
             Settings effective = effectiveSettings(reloadSettings.getInitialSettings());
             Settings desired = desiredSettings(reloadSettings.getFileSettings(), reloadSettings.getEnvironmentSettings());
+
             effectiveSettingsPerNode.put(nodeId, effective);
             initialSettingsPerNode.put(nodeId, reloadSettings.getInitialSettings());
             desiredSettingsPerNode.put(nodeId, desired);
+
             noteInconsistencies(effectiveSettingsConsistency, effective, first);
             noteInconsistencies(initialSettingsConsistency, reloadSettings.getInitialSettings(), first);
             noteInconsistencies(desiredSettingsConsistency, desired, first);
 
-            builder.startObject(nodeId);
-
-            builder.field(Fields.EFFECTIVE, effective.getAsMap());
-
-            reloadSettings.toXContent(builder, params);
-
-            builder.field(Fields.DESIRED, desired.getAsMap());
-
-            builder.startObject(Fields.INCONSISTENCIES);
+            InconsistentSettings<NodeInconsistency> inconsistencies = new InconsistentSettings<NodeInconsistency>();
             for (String key : settingsDifference(effective, desired)) {
-                builder.startObject(key);
-                builder.field(Fields.EFFECTIVE, effective.get(key));
-                builder.field(Fields.DESIRED, desired.get(key));
-                builder.field(Fields.UPDATABLE, dynamicSettings.hasDynamicSetting(key));
-                builder.endObject();
+                inconsistencies.add(new NodeInconsistency(key, dynamicSettings.hasDynamicSetting(key), effective.get(key), desired.get(key)));
             }
-            builder.endObject();
 
-            builder.endObject();
+            reloadSettings.setEffectiveSettings(effective);
+            reloadSettings.setDesiredSettings(desired);
+            reloadSettings.setInconsistentSettings(inconsistencies);
+
             first = false;
         }
-        builder.endObject();
 
-        builder.startObject(Fields.CONSISTENCIES);
-        builder.field(Fields.EFFECTIVE, extractConsistencies(effectiveSettingsConsistency, true));
-        builder.field(Fields.INITIAL, extractConsistencies(initialSettingsConsistency, true));
-        builder.field(Fields.DESIRED, extractConsistencies(desiredSettingsConsistency, true));
-        builder.endObject();
+        consistentEffectiveSettings = extractConsistencies(effectiveSettingsConsistency, true);
+        consistentInitialSettings = extractConsistencies(initialSettingsConsistency, true);
+        consistentDesiredSettings = extractConsistencies(desiredSettingsConsistency, true);
 
-        builder.startObject(Fields.INCONSISTENCIES);
-        builder.startObject(Fields.EFFECTIVE);
-        buildInconsistency(builder, effectiveSettingsConsistency, effectiveSettingsPerNode);
-        builder.endObject();
-        builder.startObject(Fields.INITIAL);
-        buildInconsistency(builder, initialSettingsConsistency, initialSettingsPerNode);
-        builder.endObject();
-        builder.startObject(Fields.DESIRED);
-        buildInconsistency(builder, desiredSettingsConsistency, desiredSettingsPerNode);
-        builder.endObject();
-        builder.endObject();
-
-        builder.endObject();
-
-        return builder;
+        inconsistentEffectiveSettings = buildInconsistency(effectiveSettingsConsistency, effectiveSettingsPerNode);
+        inconsistentInitialSettings = buildInconsistency(initialSettingsConsistency, initialSettingsPerNode);
+        inconsistentDesiredSettings = buildInconsistency(desiredSettingsConsistency, desiredSettingsPerNode);
     }
 
     private static void noteInconsistencies(Map<String, String> referent, Settings version, boolean isFirst) {
@@ -135,12 +213,12 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
         }
     }
 
-    private static Map<String, String> extractConsistencies(Map<String, String> referent, boolean returnConsistencies) {
-        Map<String, String> rtn = new HashMap<String, String>();
+    private static Settings extractConsistencies(Map<String, String> referent, boolean returnConsistencies) {
+        ImmutableSettings.Builder builder = ImmutableSettings.builder();
         for (Map.Entry<String, String> entry : referent.entrySet())
             if (isConsistent(entry.getValue()) == returnConsistencies)
-                rtn.put(entry.getKey(), entry.getValue());
-        return rtn;
+                builder.put(entry.getKey(), entry.getValue());
+        return builder.build();
     }
 
     private static boolean isConsistent(String value) {
@@ -148,20 +226,20 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
         return value != INCONSISTENCY;
     }
 
-    private XContentBuilder buildInconsistency(XContentBuilder builder, Map<String, String> reference, Map<String, Settings> settingsPerNode) throws IOException {
-        Map<String, String> inconsistencies = extractConsistencies(reference, false);
-        for (String inconsistentKeys : inconsistencies.keySet()) {
-            builder.startObject(inconsistentKeys);
+    private InconsistentSettings<ClusterInconsistency> buildInconsistency(Map<String, String> reference, Map<String, Settings> settingsPerNode) {
+        InconsistentSettings<ClusterInconsistency> rtn = new InconsistentSettings<ClusterInconsistency>();
+        Settings inconsistencies = extractConsistencies(reference, false);
+        for (String inconsistentKey : inconsistencies.getAsMap().keySet()) {
+            ClusterInconsistency inconsistency = new ClusterInconsistency(inconsistentKey, dynamicSettings.hasDynamicSetting(inconsistentKey));
             for (Map.Entry<String, Settings> entry : settingsPerNode.entrySet()) {
-                builder.field(entry.getKey(), entry.getValue().get(inconsistentKeys));
+                inconsistency.add(entry.getKey(), entry.getValue().get(inconsistentKey));
             }
-            builder.field(Fields.UPDATABLE, dynamicSettings.hasDynamicSetting(inconsistentKeys));
-            builder.endObject();
+            rtn.add(inconsistency);
         }
-        return builder;
+        return rtn;
     }
 
-    public Settings effectiveSettingsForNode(Settings nodeId) {
+    public Settings effectiveSettingsForNode(String nodeId) {
         return effectiveSettings(getNodesMap().get(nodeId).getInitialSettings());
     }
 
@@ -202,12 +280,11 @@ public class ReloadSettingsResponse extends NodesOperationResponse<ReloadSetting
         static final XContentBuilderString SETTINGS = new XContentBuilderString("settings");
         static final XContentBuilderString CLUSTER = new XContentBuilderString("cluster");
         static final XContentBuilderString NODES = new XContentBuilderString("nodes");
-        static final XContentBuilderString EFFECTIVE = new XContentBuilderString("effective");
+        static final XContentBuilderString EFFECTIVE = ReloadSettings.Fields.EFFECTIVE;
         static final XContentBuilderString INITIAL = ReloadSettings.Fields.INITIAL;
-        static final XContentBuilderString DESIRED = new XContentBuilderString("desired");
+        static final XContentBuilderString DESIRED = ReloadSettings.Fields.DESIRED;
         static final XContentBuilderString CONSISTENCIES = new XContentBuilderString("consistencies");
-        static final XContentBuilderString INCONSISTENCIES = new XContentBuilderString("inconsistencies");
-        static final XContentBuilderString UPDATABLE = new XContentBuilderString("_updatable");
+        static final XContentBuilderString INCONSISTENCIES = ReloadSettings.Fields.INCONSISTENCIES;
     }
 
 }
