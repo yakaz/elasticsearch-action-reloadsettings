@@ -154,4 +154,68 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
         return response;
     }
 
+    @Test
+    public void testClusterSizeChange() throws Exception {
+        File tmp = File.createTempFile("elasticsearch-test-", "-config.yml");
+        PrintStream ps = new PrintStream(tmp);
+        ps.println("discovery.zen.minimum_master_nodes: 1");
+        ps.close();
+
+        String oldEsConfig = System.getProperty("es.config");
+        System.setProperty("es.config", tmp.getAbsolutePath());
+
+        logger.info("--> starting 2 nodes");
+        startNode("node1", ImmutableSettings.settingsBuilder().put("config.ignore_system_properties", false));
+        startNode("node2", ImmutableSettings.settingsBuilder().put("config.ignore_system_properties", false));
+
+        ClusterHealthResponse clusterHealthResponse = client("node1").admin().cluster().prepareHealth().setWaitForGreenStatus().execute().actionGet();
+        assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
+
+        // We should be able to get rid of the following call
+        //   System.clearProperty("es.config");
+        // But see TransportReloadSettingsAction's call to InternalSettingsPerparer.prepareSettings():
+        // the original environment is not preserved.
+
+        ReloadSettingsResponse response = getSettings("node1");
+        logger.info(response.toString(true));
+        assertThat(response.getNodes()[0].getEffectiveSettings().get("discovery.zen.minimum_master_nodes"), equalTo("1"));
+        assertThat(response.getNodes()[0].getInconsistentSettings().get("discovery.zen.minimum_master_nodes"), nullValue());
+        assertThat(response.getNodes()[1].getEffectiveSettings().get("discovery.zen.minimum_master_nodes"), equalTo("1"));
+        assertThat(response.getNodes()[1].getInconsistentSettings().get("discovery.zen.minimum_master_nodes"), nullValue());
+
+        ps = new PrintStream(tmp);
+        ps.println("discovery.zen.minimum_master_nodes: 2");
+        ps.close();
+
+        response = getSettings("node1");
+        logger.info(response.toString(true));
+
+        assertThat(response.getNodes()[0].getEffectiveSettings().get("discovery.zen.minimum_master_nodes"), equalTo("1"));
+        NodeInconsistency inconsistency = response.getNodes()[0].getInconsistentSettings().get("discovery.zen.minimum_master_nodes");
+        assertThat(inconsistency, notNullValue());
+        assertThat(inconsistency.getEffective(), equalTo("1"));
+        assertThat(inconsistency.getDesired(), equalTo("2"));
+
+        assertThat(response.getNodes()[1].getEffectiveSettings().get("discovery.zen.minimum_master_nodes"), equalTo("1"));
+        inconsistency = response.getNodes()[1].getInconsistentSettings().get("discovery.zen.minimum_master_nodes");
+        assertThat(inconsistency, notNullValue());
+        assertThat(inconsistency.getEffective(), equalTo("1"));
+        assertThat(inconsistency.getDesired(), equalTo("2"));
+
+        // Now set cluster-wide setting to fix the inconsistency (in effective settings only, not in initial settings)
+        client("node1").admin().cluster().updateSettings(clusterUpdateSettingsRequest().transientSettings("{discovery:{zen:{minimum_master_nodes:2}}}")).actionGet();
+
+        response = getSettings("node1");
+        logger.info(response.toString(true));
+        assertThat(response.getNodes()[0].getEffectiveSettings().get("discovery.zen.minimum_master_nodes"), equalTo("2"));
+        assertThat(response.getNodes()[0].getInconsistentSettings().get("discovery.zen.minimum_master_nodes"), nullValue());
+        assertThat(response.getNodes()[1].getEffectiveSettings().get("discovery.zen.minimum_master_nodes"), equalTo("2"));
+        assertThat(response.getNodes()[1].getInconsistentSettings().get("discovery.zen.minimum_master_nodes"), nullValue());
+
+        if (oldEsConfig == null)
+            System.clearProperty("es.config");
+        else
+            System.setProperty("es.config", oldEsConfig);
+    }
+
 }
