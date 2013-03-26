@@ -7,6 +7,8 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.joda.time.DateTime;
+import org.elasticsearch.common.joda.time.format.ISODateTimeFormat;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
@@ -28,6 +30,9 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
     private Settings fileSettings;
 
     private Settings environmentSettings;
+
+    @Nullable
+    private DateTime fileTimestamp;
 
     @Nullable
     private InconsistentSettings<NodeInconsistency> inconsistentSettings; // calculated in ReloadSettingsResponse
@@ -76,6 +81,14 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
         this.environmentSettings = environmentSettings;
     }
 
+    public DateTime getFileTimestamp() {
+        return fileTimestamp;
+    }
+
+    public void setFileTimestamp(DateTime fileTimestamp) {
+        this.fileTimestamp = fileTimestamp;
+    }
+
     public InconsistentSettings<NodeInconsistency> getInconsistentSettings() {
         return inconsistentSettings;
     }
@@ -89,6 +102,7 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
         super.readFrom(in);
         fileSettings = ImmutableSettings.readSettingsFromStream(in);
         environmentSettings = ImmutableSettings.readSettingsFromStream(in);
+        fileTimestamp = (DateTime) in.readGenericValue();
         initialSettings = ImmutableSettings.readSettingsFromStream(in);
     }
 
@@ -97,6 +111,7 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
         super.writeTo(out);
         ImmutableSettings.writeSettingsToStream(fileSettings, out);
         ImmutableSettings.writeSettingsToStream(environmentSettings, out);
+        out.writeGenericValue(fileTimestamp);
         ImmutableSettings.writeSettingsToStream(initialSettings, out);
     }
 
@@ -110,6 +125,13 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
             builder.field(Fields.DESIRED, desiredSettings.getAsMap());
         builder.field(Fields.FILE, fileSettings.getAsMap());
         builder.field(Fields.ENVIRONMENT, environmentSettings.getAsMap());
+        if (fileTimestamp != null) {
+            builder.field(Fields.FILE_TIMESTAMP, fileTimestamp.toString(ISODateTimeFormat.dateTimeNoMillis()));
+            builder.field(Fields.FILE_TIMESTAMP_IN_MILLIS, fileTimestamp.getMillis());
+        } else {
+            builder.nullField(Fields.FILE_TIMESTAMP);
+            builder.nullField(Fields.FILE_TIMESTAMP_IN_MILLIS);
+        }
         if (inconsistentSettings != null) {
             builder.field(Fields.INCONSISTENCIES);
             inconsistentSettings.toXContent(builder, params);
@@ -151,6 +173,8 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
 
         private Settings persistentSettings;
 
+        private DateTime timestamp;
+
         public Settings getEffectiveSettings() {
             return effectiveSettings;
         }
@@ -175,12 +199,21 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
             this.persistentSettings = persistentSettings;
         }
 
+        public DateTime getTimestamp() {
+            return timestamp;
+        }
+
+        public void setTimestamp(DateTime timestamp) {
+            this.timestamp = timestamp;
+        }
+
         @Override
         public void readFrom(StreamInput in) throws IOException {
             super.readFrom(in);
             effectiveSettings = ImmutableSettings.readSettingsFromStream(in);
             transientSettings = ImmutableSettings.readSettingsFromStream(in);
             persistentSettings = ImmutableSettings.readSettingsFromStream(in);
+            timestamp = (DateTime) in.readGenericValue();
         }
 
         @Override
@@ -189,6 +222,7 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
             ImmutableSettings.writeSettingsToStream(effectiveSettings, out);
             ImmutableSettings.writeSettingsToStream(transientSettings, out);
             ImmutableSettings.writeSettingsToStream(persistentSettings, out);
+            out.writeGenericValue(timestamp);
         }
 
         @Override
@@ -197,6 +231,13 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
             builder.field(Fields.EFFECTIVE, effectiveSettings.getAsMap());
             builder.field(Fields.TRANSIENT, transientSettings.getAsMap());
             builder.field(Fields.PERSISTENT, persistentSettings.getAsMap());
+            if (timestamp == null) {
+                builder.nullField(Fields.TIMESTAMP);
+                builder.nullField(Fields.TIMESTAMP_IN_MILLIS);
+            } else {
+                builder.field(Fields.TIMESTAMP, timestamp.toString(ISODateTimeFormat.dateTimeNoMillis()));
+                builder.field(Fields.TIMESTAMP_IN_MILLIS, timestamp.getMillis());
+            }
             builder.endObject();
             return builder;
         }
@@ -230,6 +271,8 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
             public static final XContentBuilderString EFFECTIVE = ReloadSettings.Fields.EFFECTIVE;
             public static final XContentBuilderString TRANSIENT = new XContentBuilderString("transient");
             public static final XContentBuilderString PERSISTENT = new XContentBuilderString("persistent");
+            public static final XContentBuilderString TIMESTAMP = new XContentBuilderString("timestamp");
+            public static final XContentBuilderString TIMESTAMP_IN_MILLIS = new XContentBuilderString("timestamp_in_millis");
         }
 
     }
@@ -240,6 +283,8 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
         public static final XContentBuilderString INITIAL = new XContentBuilderString("initial");
         public static final XContentBuilderString FILE = new XContentBuilderString("file");
         public static final XContentBuilderString ENVIRONMENT = new XContentBuilderString("environment");
+        public static final XContentBuilderString FILE_TIMESTAMP = new XContentBuilderString("file_timestamp");
+        public static final XContentBuilderString FILE_TIMESTAMP_IN_MILLIS = new XContentBuilderString("file_timestamp_in_millis");
         public static final XContentBuilderString INCONSISTENCIES = new XContentBuilderString("inconsistencies");
     }
 

@@ -28,12 +28,18 @@ public class TransportReloadSettingsAction extends TransportNodesOperationAction
     public static final String RANDOM_VALUE_AT_STARTUP = "{RANDOM_VALUE_AT_STARTUP}";
 
     private final DynamicSettings dynamicSettings;
+    private final ReloadSettingsClusterService reloadSettingsClusterService;
+    private final ReloadSettingsNodeService reloadSettingsNodeService;
 
     @Inject
     public TransportReloadSettingsAction(Settings settings, ClusterName clusterName, ThreadPool threadPool,
                                          ClusterService clusterService, TransportService transportService,
+                                         ReloadSettingsClusterService reloadSettingsClusterService,
+                                         ReloadSettingsNodeService reloadSettingsNodeService,
                                          @ClusterDynamicSettings DynamicSettings dynamicSettings) {
         super(settings, clusterName, threadPool, clusterService, transportService);
+        this.reloadSettingsClusterService = reloadSettingsClusterService;
+        this.reloadSettingsNodeService = reloadSettingsNodeService;
         this.dynamicSettings = dynamicSettings;
     }
 
@@ -61,9 +67,10 @@ public class TransportReloadSettingsAction extends TransportNodesOperationAction
                 responses.add((ReloadSettings) resp);
         }
         ReloadSettings.Cluster clusterResponse = new ReloadSettings.Cluster();
-        clusterResponse.setEffectiveSettings(clusterService.state().metaData().settings());
-        clusterResponse.setTransientSettings(clusterService.state().metaData().transientSettings());
-        clusterResponse.setPersistentSettings(clusterService.state().metaData().persistentSettings());
+        clusterResponse.setTimestamp(reloadSettingsClusterService.getLastClusterSettingsTimestamp());
+        clusterResponse.setEffectiveSettings(reloadSettingsClusterService.getLastMetaData().settings());
+        clusterResponse.setTransientSettings(reloadSettingsClusterService.getLastMetaData().transientSettings());
+        clusterResponse.setPersistentSettings(reloadSettingsClusterService.getLastMetaData().persistentSettings());
         return new ReloadSettingsResponse(clusterName, clusterResponse, responses.toArray(new ReloadSettings[responses.size()]), dynamicSettings);
     }
 
@@ -97,9 +104,10 @@ public class TransportReloadSettingsAction extends TransportNodesOperationAction
                 .build();
         Tuple<Settings, Environment> startupConf = InternalSettingsPerparer.prepareSettings(pSettings, true);
 
+        nodeResponse.setInitialSettings(settings);
         nodeResponse.setFileSettings(startupConf.v1());
         nodeResponse.setEnvironmentSettings(startupConf.v2().settings());
-        nodeResponse.setInitialSettings(settings);
+        nodeResponse.setFileTimestamp(reloadSettingsNodeService.getLastFileTimestamp(pSettings));
         return nodeResponse;
     }
 
