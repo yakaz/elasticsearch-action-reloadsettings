@@ -132,7 +132,7 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
 
         ReloadSettingsResponse response = getSettings("node1");
         assertThat(response.getNodes().length, equalTo(1));
-        logger.info(response.toString(true));
+        logger.debug(response.toString(true));
         assertThat(response.getNodes()[0].getEffectiveSettings().get("discovery.zen.minimum_master_nodes"), equalTo("1"));
         assertThat(response.getNodes()[0].getInconsistentSettings().get("discovery.zen.minimum_master_nodes"), nullValue());
 
@@ -142,7 +142,7 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
 
         response = getSettings("node1");
         assertThat(response.getNodes().length, equalTo(1));
-        logger.info(response.toString(true));
+        logger.debug(response.toString(true));
         assertThat(response.getNodes()[0].getEffectiveSettings().get("discovery.zen.minimum_master_nodes"), equalTo("1"));
         NodeInconsistency inconsistency = response.getNodes()[0].getInconsistentSettings().get("discovery.zen.minimum_master_nodes");
         assertThat(inconsistency, notNullValue());
@@ -185,7 +185,7 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
 
         ReloadSettingsResponse response = getSettings("node1");
         assertThat(response.getNodes().length, equalTo(2));
-        logger.info(response.toString(true));
+        logger.debug(response.toString(true));
         assertThat(response.getNodes()[0].getEffectiveSettings().get("discovery.zen.minimum_master_nodes"), equalTo("1"));
         assertThat(response.getNodes()[0].getInconsistentSettings().get("discovery.zen.minimum_master_nodes"), nullValue());
         assertThat(response.getNodes()[1].getEffectiveSettings().get("discovery.zen.minimum_master_nodes"), equalTo("1"));
@@ -197,7 +197,7 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
 
         response = getSettings("node1");
         assertThat(response.getNodes().length, equalTo(2));
-        logger.info(response.toString(true));
+        logger.debug(response.toString(true));
 
         assertThat(response.getNodes()[0].getEffectiveSettings().get("discovery.zen.minimum_master_nodes"), equalTo("1"));
         NodeInconsistency inconsistency = response.getNodes()[0].getInconsistentSettings().get("discovery.zen.minimum_master_nodes");
@@ -216,7 +216,7 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
 
         response = getSettings("node1");
         assertThat(response.getNodes().length, equalTo(2));
-        logger.info(response.toString(true));
+        logger.debug(response.toString(true));
         assertThat(response.getNodes()[0].getEffectiveSettings().get("discovery.zen.minimum_master_nodes"), equalTo("2"));
         assertThat(response.getNodes()[0].getInconsistentSettings().get("discovery.zen.minimum_master_nodes"), nullValue());
         assertThat(response.getNodes()[1].getEffectiveSettings().get("discovery.zen.minimum_master_nodes"), equalTo("2"));
