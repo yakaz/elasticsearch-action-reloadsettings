@@ -41,6 +41,7 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
         // Note that this is actually an artifact of the fact that we cannot keep the initial environment
 
         ReloadSettingsResponse reloadSettings = getSettings("node1");
+        assertThat(reloadSettings.getNodes().length, equalTo(1));
         Settings effective = reloadSettings.effectiveSettingsForNode(reloadSettings.getNodes()[0].getNode().id());
         assertThat(effective.get("cluster.name"), startsWith("test-cluster-"));
         Settings initial = reloadSettings.getNodes()[0].getInitialSettings();
@@ -65,6 +66,8 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
 
         ReloadSettingsResponse node1 = getSettings("node1");
         ReloadSettingsResponse node2 = getSettings("node2");
+        assertThat(node1.getNodes().length, equalTo(2));
+        assertThat(node2.getNodes().length, equalTo(2));
         logger.debug(node1.toString());
         assertThat(node1, equalTo(node2));
     }
@@ -79,6 +82,7 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
         assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
 
         ReloadSettingsResponse response = getSettings("node1");
+        assertThat(response.getNodes().length, equalTo(2));
 
         ClusterInconsistency inconsistency = response.getInconsistentInitialSettings().get("discovery.zen.minimum_master_nodes");
         assertThat(inconsistency, notNullValue());
@@ -94,6 +98,7 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
         client("node1").admin().cluster().updateSettings(clusterUpdateSettingsRequest().transientSettings("{discovery:{zen:{minimum_master_nodes:2}}}")).actionGet();
 
         response = getSettings("node1");
+        assertThat(response.getNodes().length, equalTo(2));
 
         inconsistency = response.getInconsistentInitialSettings().get("discovery.zen.minimum_master_nodes");
         assertThat(inconsistency, notNullValue());
@@ -126,6 +131,7 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
         // the original environment is not preserved.
 
         ReloadSettingsResponse response = getSettings("node1");
+        assertThat(response.getNodes().length, equalTo(1));
         logger.info(response.toString(true));
         assertThat(response.getNodes()[0].getEffectiveSettings().get("discovery.zen.minimum_master_nodes"), equalTo("1"));
         assertThat(response.getNodes()[0].getInconsistentSettings().get("discovery.zen.minimum_master_nodes"), nullValue());
@@ -135,6 +141,7 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
         ps.close();
 
         response = getSettings("node1");
+        assertThat(response.getNodes().length, equalTo(1));
         logger.info(response.toString(true));
         assertThat(response.getNodes()[0].getEffectiveSettings().get("discovery.zen.minimum_master_nodes"), equalTo("1"));
         NodeInconsistency inconsistency = response.getNodes()[0].getInconsistentSettings().get("discovery.zen.minimum_master_nodes");
@@ -177,6 +184,7 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
         // the original environment is not preserved.
 
         ReloadSettingsResponse response = getSettings("node1");
+        assertThat(response.getNodes().length, equalTo(2));
         logger.info(response.toString(true));
         assertThat(response.getNodes()[0].getEffectiveSettings().get("discovery.zen.minimum_master_nodes"), equalTo("1"));
         assertThat(response.getNodes()[0].getInconsistentSettings().get("discovery.zen.minimum_master_nodes"), nullValue());
@@ -188,6 +196,7 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
         ps.close();
 
         response = getSettings("node1");
+        assertThat(response.getNodes().length, equalTo(2));
         logger.info(response.toString(true));
 
         assertThat(response.getNodes()[0].getEffectiveSettings().get("discovery.zen.minimum_master_nodes"), equalTo("1"));
@@ -206,6 +215,7 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
         client("node1").admin().cluster().updateSettings(clusterUpdateSettingsRequest().transientSettings("{discovery:{zen:{minimum_master_nodes:2}}}")).actionGet();
 
         response = getSettings("node1");
+        assertThat(response.getNodes().length, equalTo(2));
         logger.info(response.toString(true));
         assertThat(response.getNodes()[0].getEffectiveSettings().get("discovery.zen.minimum_master_nodes"), equalTo("2"));
         assertThat(response.getNodes()[0].getInconsistentSettings().get("discovery.zen.minimum_master_nodes"), nullValue());
