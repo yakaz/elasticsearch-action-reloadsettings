@@ -68,7 +68,7 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
         ReloadSettingsResponse node2 = getSettings("node2");
         assertThat(node1.getNodes().length, equalTo(2));
         assertThat(node2.getNodes().length, equalTo(2));
-        logger.debug(node1.toString());
+        logger.debug(node1.toString(true));
         assertThat(node1, equalTo(node2));
     }
 
