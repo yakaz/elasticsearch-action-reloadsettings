@@ -1,3 +1,9 @@
+# Swap files
+.*.swp
+.swp
+.#*
+*~
+
 # Maven
 /target/
 
