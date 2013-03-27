@@ -50,8 +50,10 @@ def collect_node_local_inconsistencies(settings):
 
     return local_inconsistencies
 
-def get_updates(settings, node_local_inconsistencies):
+def get_updates(settings, node_local_inconsistencies=None):
     updates = {}
+    if node_local_inconsistencies is None:
+        node_local_inconsistencies = collect_node_local_inconsistencies(settings)
 
     cluster_ts = settings['settings']['cluster']['timestamp_in_millis']
     cluster_time = settings['settings']['cluster']['timestamp']
