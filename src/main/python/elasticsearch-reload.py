@@ -50,6 +50,9 @@ def collect_node_local_inconsistencies(settings):
 
     return local_inconsistencies
 
+def has_node_local_inconsistencies(node_local_inconsistencies):
+    return len(node_local_inconsistencies) > 0
+
 def get_updates(settings, node_local_inconsistencies=None):
     updates = {}
     if node_local_inconsistencies is None:
@@ -141,20 +144,23 @@ def main():
     args = parse()
     settings = get_settings(args)
     local_inconsistencies = collect_node_local_inconsistencies(settings)
+    if not has_node_local_inconsistencies(local_inconsistencies):
+        print 'Nothing to do'
+        return
     updates = get_updates(settings, local_inconsistencies)
     update_decisions = get_update_decisions(updates)
-    if has_update_decisions(update_decisions):
-        apply_update_decisions(args, update_decisions)
-        if args.simulate:
-            print 'Would check'
-        else:
-            print 'Checking'
-            if has_update_decisions(get_update_decisions(get_updates(get_settings(args)))):
-                print 'Some updates are still to be performed!'
-            else:
-                print 'OK'
+    if not has_update_decisions(update_decisions):
+        print 'Nothing can be done'
+        return
+    apply_update_decisions(args, update_decisions)
+    if args.simulate:
+        print 'Would check'
     else:
-        print 'Nothing to do'
+        print 'Checking'
+        if has_update_decisions(get_update_decisions(get_updates(get_settings(args)))):
+            print 'Some updates are still to be performed!'
+        else:
+            print 'OK'
 
 
 
