@@ -6,14 +6,18 @@ import requests
 import json
 import sys
 
-def parse():
+def parse(argv = None, **kwargs):
     parser = argparse.ArgumentParser(description='Reloads ElasticSearch cluster settings', conflict_handler='resolve')
     parser.add_argument('-h', '--host',  action='store',       type=str,   default='localhost', dest='host',     help='Host to contact')
     parser.add_argument('-p', '--port',  action='store',       type=int,   default=9200,        dest='port',     help='Port to contact')
     parser.add_argument('-l', '--local', action='store_true',                                   dest='local',    help='Only query the local, contacted node')
     parser.add_argument('-n', '--dry-run', '--simulate',
                                          action='store_true',                                   dest='simulate', help='Do not apply any update')
-    args = parser.parse_args()
+    if argv is None:
+        argv = sys.argv[1:]
+    argv.extend(['--%s' % key.replace('_', '-') for key, value in kwargs.iteritems() if value == True])
+    argv.extend(['--%s=%s' % (key.replace('_', '-'), value) for key, value in kwargs.iteritems() if type(value) != bool])
+    args = parser.parse_args(argv)
     args.update_url = 'http://%s:%d/_cluster/settings' % ( args.host, args.port )
     args.reload_url = 'http://%s:%d/_nodes%s/settings/reload' % ( args.host, args.port, '/_local' if args.local else '' )
     return args
@@ -140,8 +144,8 @@ def apply_update_decisions(args, update_decisions):
         raise_with_answer_text(r, 'Could not update!')
         print 'Updated:', r.text
 
-def main():
-    args = parse()
+def reload_settings(argv = None, **kwargs):
+    args = parse(argv, **kwargs)
     settings = get_settings(args)
     local_inconsistencies = collect_node_local_inconsistencies(settings)
     if not has_node_local_inconsistencies(local_inconsistencies):
@@ -161,6 +165,9 @@ def main():
             print 'Some updates are still to be performed!'
         else:
             print 'OK'
+
+def main():
+    reload_settings(sys.argv[1:])
 
 
 
