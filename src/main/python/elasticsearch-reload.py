@@ -76,6 +76,8 @@ def get_updates(settings, node_local_inconsistencies=None):
         for node_id, node in settings['settings']['nodes'].iteritems():
             file_ts = node['file_timestamp_in_millis']
             file_time = node['file_timestamp']
+            if file_ts <= cluster_ts:
+                continue # file is older
             update[node_id] = { 'value': node['desired'].get(key), 'ts': file_ts, 'time': file_time }
             if inconsistent:
                 inconsistencies[node_id] = { 'value': node['effective'].get(key), 'ts': file_ts, 'time': file_time }
