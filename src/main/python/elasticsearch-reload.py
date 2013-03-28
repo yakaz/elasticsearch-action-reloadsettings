@@ -6,6 +6,26 @@ import requests
 import json
 import sys
 
+class Logger:
+    DEFAULT = 1
+    ERROR = 0
+    INFO = 1
+    VERBOSE = 2
+    def __init__(self, level):
+        self.level = level
+    def log(self, level, msg, *format_args):
+        if level > self.level:
+            return
+        if len(format_args) > 0:
+            msg = msg % format_args
+        print msg
+    def error(self, msg, *format_args):
+        self.log(Logger.ERROR, msg, *format_args)
+    def info(self, msg, *format_args):
+        self.log(Logger.INFO, msg, *format_args)
+    def verbose(self, msg, *format_args):
+        self.log(Logger.VERBOSE, msg, *format_args)
+
 def parse(argv = None, **kwargs):
     parser = argparse.ArgumentParser(description='Reloads ElasticSearch cluster settings', conflict_handler='resolve')
     parser.add_argument('-h', '--host',  action='store',       type=str,   default='localhost', dest='host',     help='Host to contact')
@@ -13,6 +33,8 @@ def parse(argv = None, **kwargs):
     parser.add_argument('-l', '--local', action='store_true',                                   dest='local',    help='Only query the local, contacted node')
     parser.add_argument('-n', '--dry-run', '--simulate',
                                          action='store_true',                                   dest='simulate', help='Do not apply any update')
+    parser.add_argument('-v', '--verbose', action='count',                                      dest='verbose_level', help='Controls verbosity level')
+    parser.add_argument('-q', '--quiet', action='store_const', const=0,                         dest='verbose_level', help='Mute, except for exceptional errors')
     parser.add_argument('-c', '--check', '--just-check',  action='store_true',                  dest='just_check', help='Just check if no updates are to be done and exit')
     parser.add_argument('--die-on-conflicts',
                                          action='store_true',                                   dest='die_on_conflicts', help='Exit with error if any conflicts are found')
@@ -23,24 +45,29 @@ def parse(argv = None, **kwargs):
     argv.extend(['--%s' % key.replace('_', '-') for key, value in kwargs.iteritems() if value == True])
     argv.extend(['--%s=%s' % (key.replace('_', '-'), value) for key, value in kwargs.iteritems() if type(value) != bool])
     args = parser.parse_args(argv)
+    if args.verbose_level is None:
+        args.verbose_level = 1 # map "no modifier" to level 1
+    elif args.verbose_level >= 1:
+        args.verbose_level += 1 # hence shift the count of '-v's
+    args.logger = Logger(args.verbose_level)
     args.update_url = 'http://%s:%d/_cluster/settings' % ( args.host, args.port )
     args.reload_url = 'http://%s:%d/_nodes%s/settings/reload' % ( args.host, args.port, '/_local' if args.local else '' )
     return args
 
-def raise_with_answer_text(request, message=None):
+def raise_with_answer_text(args, request, message=None):
     if request.status_code != requests.codes.ok:
         if message is not None:
             if request.text is not None and len(request.text) > 0:
-                print message, request.text
+                args.logger.error('%s %s', message, request.text)
             else:
-                print message
+                args.logger.error(message)
         elif request.text is not None and len(request.text) > 0:
-            print request.text
+            args.logger.error(request.text)
     request.raise_for_status()
 
 def get_settings(args):
     r = requests.get(args.reload_url)
-    raise_with_answer_text(r, 'Could not get settings!')
+    raise_with_answer_text(args, r, 'Could not get settings!')
     return r.json
 
 def collect_node_local_inconsistencies(settings):
@@ -107,7 +134,7 @@ def get_updates(settings, node_local_inconsistencies=None):
 def sort_multiple_values_by_timestamp(source):
     return sorted(source.iteritems(), key=lambda o: o[1]['ts'])
 
-def resolve_simple_confict(key, source, effective):
+def resolve_simple_confict(args, key, source, effective):
     if effective['from'] is None:
         # Cannot resolve when no effective value
         return None
@@ -129,7 +156,7 @@ def resolve_simple_confict(key, source, effective):
         # or some updated nodes require the effective value but some previous updated node require another one (eg.: effective['value'], foo, effective['value'])
         return None
     resolved = changes[-1] # resolve to the most updated value (can be effective['value'] if len(changes)==1, but this should not happen
-    print 'Resolved simple conflict for %s to %s: %s, desired: %s' % (key, resolved, format_effective_values(effective), format_multiple_values(source))
+    args.logger.verbose('Resolved simple conflict for %s to %s: %s, desired: %s', key, resolved, format_effective_values(effective), format_multiple_values(source))
     return resolved
 
 def format_multiple_values(source):
@@ -155,15 +182,15 @@ def get_update_decisions(args, updates):
         if len(values) > 1:
             resolved = None
             if args.resolve_simple_conflicts:
-                resolved = resolve_simple_confict(key, nodes, effective)
+                resolved = resolve_simple_confict(args, key, nodes, effective)
             if resolved is not None:
                 values = [resolved]
             else:
-                print 'No unanimity in uptodate value for %s: %s, desired: %s' % (key, format_effective_values(effective), format_multiple_values(nodes))
+                args.logger.info('No unanimity in uptodate value for %s: %s, desired: %s', key, format_effective_values(effective), format_multiple_values(nodes))
                 conflicts.append(key)
                 continue
         value = values.pop()
-        print 'Update %s from %s to %s' % (key, format_effective_values(effective), value)
+        args.logger.info('Update %s from %s to %s', key, format_effective_values(effective), value)
         update_request[key] = value
     return (conflicts, update_request)
 
@@ -178,44 +205,44 @@ def apply_update_decisions(args, update_decisions):
         return
     update_request = json.dumps({ 'transient': update_decisions })
     if args.simulate:
-        print 'Would PUT', args.update_url, 'with data', update_request
+        args.logger.info('Would PUT %s with data %s', args.update_url, update_request)
     else:
         r = requests.put(args.update_url, data=update_request)
-        raise_with_answer_text(r, 'Could not update!')
-        print 'Updated%s' % (': %s' % (r.text,) if r.text is not None and len(r.text) > 0 else '')
+        raise_with_answer_text(args, r, 'Could not update!')
+        args.logger.info('Updated%s', ': %s' % (r.text,) if r.text is not None and len(r.text) > 0 else '')
 
 def reload_settings(argv = None, **kwargs):
     args = parse(argv, **kwargs)
     settings = get_settings(args)
     local_inconsistencies = collect_node_local_inconsistencies(settings)
     if not has_node_local_inconsistencies(local_inconsistencies):
-        print 'Nothing to do'
+        args.logger.info('Nothing to do')
         return 0
     updates = get_updates(settings, local_inconsistencies)
     conflicts, update_decisions = get_update_decisions(args, updates)
     if args.die_on_conflicts and has_conflicts(conflicts):
-        print 'There are some conflicts, dying'
+        args.logger.error('There are some conflicts, dying')
         return 1
     if not has_update_decisions(update_decisions):
-        print 'Nothing can be done'
+        args.logger.info('Nothing can be done')
         return 0
     if args.just_check:
-        print 'Nothing was applied, just checked'
+        args.logger.info('Nothing was applied, just checked')
         return 1
     apply_update_decisions(args, update_decisions)
     if args.simulate:
-        print 'Would check'
+        args.logger.info('Would check')
     else:
-        print 'Checking'
+        args.logger.info('Checking')
         conflicts, update_decisions = get_update_decisions(args, get_updates(get_settings(args)))
         if args.die_on_conflicts and has_conflicts(conflicts):
-            print 'Some settings are now conflicting, dying'
+            args.logger.error('Some settings are now conflicting, dying')
             return 2
         if has_update_decisions(update_decisions):
-            print 'Some updates are still to be performed!'
+            args.logger.error('Some updates are still to be performed!')
             return 2
         else:
-            print 'OK'
+            args.logger.info('OK')
     return 0
 
 def main():
