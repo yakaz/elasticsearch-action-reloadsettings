@@ -104,29 +104,25 @@ def format_multiple_values(source):
     explanation = ['%s:[%s]%s' % (node_id, node['time'], '(none)' if node['value'] is None else node['value']) for node_id, node in sorted_source]
     return ', '.join(explanation)
 
+def format_effective_values(effective):
+    if effective['from'] is None:
+        return 'effective:(unset)'
+    if 'inconsistent' in effective:
+        return 'effective(from %s): %s' % (effective['from'], format_multiple_values(effective['inconsistent']))
+    if effective['value'] is None:
+        effective['value'] = '(none)'
+    return 'effective(from %s): [%s]%s' % (effective['from'], effective['time'], effective['value'])
+
 def get_update_decisions(updates):
     update_request = {}
     for key, nodes in updates.iteritems():
         effective = nodes.pop('_effective')
         values = set([v['value'] for v in nodes.values()])
         if len(values) > 1:
-            if 'inconsistent' in effective:
-                print 'No unanimity in uptodate value for %s: effective(from %s): %s, desired: %s' % (key, effective['from'], format_multiple_values(effective['inconsistent']), format_multiple_values(nodes))
-            else:
-                if effective['value'] is None:
-                    effective['value'] = '(none)'
-                print 'No unanimity in uptodate value for %s: effective(from %s): [%s]%s, desired: %s' % (key, effective['from'], effective['time'], effective['value'], format_multiple_values(nodes))
+            print 'No unanimity in uptodate value for %s: %s, desired: %s' % (key, format_effective_values(effective), format_multiple_values(nodes))
             continue
         value = values.pop()
-        if effective['from'] is None:
-            effective_str = '(unset)'
-        else:
-            if 'inconsistent' in effective:
-                effective['value'] = format_multiple_values(effective['inconsistent'])
-            if effective['value'] is None:
-                effective['value'] = '(none)'
-            effective_str = '(%s) %s' % (effective['from'], effective.get('value'))
-        print 'Update %s from %s to %s' % (key, effective_str, value)
+        print 'Update %s from %s to %s' % (key, format_effective_values(effective), value)
         update_request[key] = value
     return update_request
 
