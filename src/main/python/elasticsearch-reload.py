@@ -30,11 +30,11 @@ def parse(argv = None, **kwargs):
 def raise_with_answer_text(request, message=None):
     if request.status_code != requests.codes.ok:
         if message is not None:
-            if request.text is not None:
+            if request.text is not None and len(request.text) > 0:
                 print message, request.text
             else:
                 print message
-        elif request.text is not None:
+        elif request.text is not None and len(request.text) > 0:
             print request.text
     request.raise_for_status()
 
@@ -182,7 +182,7 @@ def apply_update_decisions(args, update_decisions):
     else:
         r = requests.put(args.update_url, data=update_request)
         raise_with_answer_text(r, 'Could not update!')
-        print 'Updated:', r.text
+        print 'Updated%s' % (': %s' % (r.text,) if r.text is not None and len(r.text) > 0 else '')
 
 def reload_settings(argv = None, **kwargs):
     args = parse(argv, **kwargs)
