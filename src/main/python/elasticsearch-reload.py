@@ -14,6 +14,8 @@ def parse(argv = None, **kwargs):
     parser.add_argument('-n', '--dry-run', '--simulate',
                                          action='store_true',                                   dest='simulate', help='Do not apply any update')
     parser.add_argument('-c', '--check', '--just-check',  action='store_true',                  dest='just_check', help='Just check if no updates are to be done and exit')
+    parser.add_argument('--die-on-conflicts',
+                                         action='store_true',                                   dest='die_on_conflicts', help='Exit with error if any conflicts are found')
     if argv is None:
         argv = sys.argv[1:]
     argv.extend(['--%s' % key.replace('_', '-') for key, value in kwargs.iteritems() if value == True])
@@ -114,18 +116,23 @@ def format_effective_values(effective):
         effective['value'] = '(none)'
     return 'effective(from %s): [%s]%s' % (effective['from'], effective['time'], effective['value'])
 
-def get_update_decisions(updates):
+def get_update_decisions(args, updates):
+    conflicts = []
     update_request = {}
     for key, nodes in updates.iteritems():
         effective = nodes.pop('_effective')
         values = set([v['value'] for v in nodes.values()])
         if len(values) > 1:
             print 'No unanimity in uptodate value for %s: %s, desired: %s' % (key, format_effective_values(effective), format_multiple_values(nodes))
+            conflicts.append(key)
             continue
         value = values.pop()
         print 'Update %s from %s to %s' % (key, format_effective_values(effective), value)
         update_request[key] = value
-    return update_request
+    return (conflicts, update_request)
+
+def has_conflicts(conflicts):
+    return len(conflicts) > 0
 
 def has_update_decisions(update_decisions):
     return len(update_decisions) > 0
@@ -149,7 +156,10 @@ def reload_settings(argv = None, **kwargs):
         print 'Nothing to do'
         return 0
     updates = get_updates(settings, local_inconsistencies)
-    update_decisions = get_update_decisions(updates)
+    conflicts, update_decisions = get_update_decisions(args, updates)
+    if args.die_on_conflicts and has_conflicts(conflicts):
+        print 'There are some conflicts, dying'
+        return 1
     if not has_update_decisions(update_decisions):
         print 'Nothing can be done'
         return 0
@@ -161,7 +171,11 @@ def reload_settings(argv = None, **kwargs):
         print 'Would check'
     else:
         print 'Checking'
-        if has_update_decisions(get_update_decisions(get_updates(get_settings(args)))):
+        conflicts, update_decisions = get_update_decisions(args, get_updates(get_settings(args)))
+        if args.die_on_conflicts and has_conflicts(conflicts):
+            print 'Some settings are now conflicting, dying'
+            return 2
+        if has_update_decisions(update_decisions):
             print 'Some updates are still to be performed!'
             return 2
         else:
