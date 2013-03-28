@@ -150,12 +150,12 @@ def reload_settings(argv = None, **kwargs):
     local_inconsistencies = collect_node_local_inconsistencies(settings)
     if not has_node_local_inconsistencies(local_inconsistencies):
         print 'Nothing to do'
-        return
+        return 0
     updates = get_updates(settings, local_inconsistencies)
     update_decisions = get_update_decisions(updates)
     if not has_update_decisions(update_decisions):
         print 'Nothing can be done'
-        return
+        return 0
     apply_update_decisions(args, update_decisions)
     if args.simulate:
         print 'Would check'
@@ -163,13 +163,15 @@ def reload_settings(argv = None, **kwargs):
         print 'Checking'
         if has_update_decisions(get_update_decisions(get_updates(get_settings(args)))):
             print 'Some updates are still to be performed!'
+            return 2
         else:
             print 'OK'
+    return 0
 
 def main():
-    reload_settings(sys.argv[1:])
+    return reload_settings(sys.argv[1:])
 
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
