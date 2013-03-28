@@ -13,6 +13,7 @@ def parse(argv = None, **kwargs):
     parser.add_argument('-l', '--local', action='store_true',                                   dest='local',    help='Only query the local, contacted node')
     parser.add_argument('-n', '--dry-run', '--simulate',
                                          action='store_true',                                   dest='simulate', help='Do not apply any update')
+    parser.add_argument('-c', '--check', '--just-check',  action='store_true',                  dest='just_check', help='Just check if no updates are to be done and exit')
     if argv is None:
         argv = sys.argv[1:]
     argv.extend(['--%s' % key.replace('_', '-') for key, value in kwargs.iteritems() if value == True])
@@ -152,6 +153,9 @@ def reload_settings(argv = None, **kwargs):
     if not has_update_decisions(update_decisions):
         print 'Nothing can be done'
         return 0
+    if args.just_check:
+        print 'Nothing was applied, just checked'
+        return 1
     apply_update_decisions(args, update_decisions)
     if args.simulate:
         print 'Would check'
