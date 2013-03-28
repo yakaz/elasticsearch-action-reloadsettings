@@ -16,6 +16,8 @@ def parse(argv = None, **kwargs):
     parser.add_argument('-c', '--check', '--just-check',  action='store_true',                  dest='just_check', help='Just check if no updates are to be done and exit')
     parser.add_argument('--die-on-conflicts',
                                          action='store_true',                                   dest='die_on_conflicts', help='Exit with error if any conflicts are found')
+    parser.add_argument('--resolve-simple-conflicts',
+                                         action='store_true',                                   dest='resolve_simple_conflicts', help='Resolve simple conflicts')
     if argv is None:
         argv = sys.argv[1:]
     argv.extend(['--%s' % key.replace('_', '-') for key, value in kwargs.iteritems() if value == True])
@@ -102,8 +104,36 @@ def get_updates(settings, node_local_inconsistencies=None):
 
     return updates
 
+def sort_multiple_values_by_timestamp(source):
+    return sorted(source.iteritems(), key=lambda o: o[1]['ts'])
+
+def resolve_simple_confict(key, source, effective):
+    if effective['from'] is None:
+        # Cannot resolve when no effective value
+        return None
+    if 'inconsistent' in effective:
+        # Cannot resolve with an inconsistent effective value
+        return None
+    sorted_source = sort_multiple_values_by_timestamp(source)
+    if sorted_source[0][1]['value'] != effective['value']:
+        # Cannot resolve when the oldest value is not consistent with the effective value
+        return None
+    last = None
+    changes = []
+    for node_id, value in sort_multiple_values_by_timestamp(source):
+        if value['value'] != last:
+            last = value['value']
+            changes.append(value['value'])
+    if len(changes) > 2:
+        # Updated nodes desire the effective value, and more than one other value (eg.: effective['value'], foo, bar, baz)
+        # or some updated nodes require the effective value but some previous updated node require another one (eg.: effective['value'], foo, effective['value'])
+        return None
+    resolved = changes[-1] # resolve to the most updated value (can be effective['value'] if len(changes)==1, but this should not happen
+    print 'Resolved simple conflict for %s to %s: %s, desired: %s' % (key, resolved, format_effective_values(effective), format_multiple_values(source))
+    return resolved
+
 def format_multiple_values(source):
-    sorted_source = sorted(source.iteritems(), key=lambda o: o[1]['ts'])
+    sorted_source = sort_multiple_values_by_timestamp(source)
     explanation = ['%s:[%s]%s' % (node_id, node['time'], '(none)' if node['value'] is None else node['value']) for node_id, node in sorted_source]
     return ', '.join(explanation)
 
@@ -123,9 +153,15 @@ def get_update_decisions(args, updates):
         effective = nodes.pop('_effective')
         values = set([v['value'] for v in nodes.values()])
         if len(values) > 1:
-            print 'No unanimity in uptodate value for %s: %s, desired: %s' % (key, format_effective_values(effective), format_multiple_values(nodes))
-            conflicts.append(key)
-            continue
+            resolved = None
+            if args.resolve_simple_conflicts:
+                resolved = resolve_simple_confict(key, nodes, effective)
+            if resolved is not None:
+                values = [resolved]
+            else:
+                print 'No unanimity in uptodate value for %s: %s, desired: %s' % (key, format_effective_values(effective), format_multiple_values(nodes))
+                conflicts.append(key)
+                continue
         value = values.pop()
         print 'Update %s from %s to %s' % (key, format_effective_values(effective), value)
         update_request[key] = value
