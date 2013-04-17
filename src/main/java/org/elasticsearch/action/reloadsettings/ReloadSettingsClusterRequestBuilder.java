@@ -1,0 +1,28 @@
+package org.elasticsearch.action.reloadsettings;
+
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.support.master.MasterNodeOperationRequestBuilder;
+import org.elasticsearch.client.ClusterAdminClient;
+import org.elasticsearch.client.ReloadSettingsClientWrapper;
+import org.elasticsearch.client.internal.InternalGenericClient;
+
+public class ReloadSettingsClusterRequestBuilder extends MasterNodeOperationRequestBuilder<ReloadSettingsClusterRequest, ReloadSettingsClusterResponse, ReloadSettingsClusterRequestBuilder> {
+
+    protected final ReloadSettingsClientWrapper reloadSettingsClientWrapper;
+
+    public ReloadSettingsClusterRequestBuilder(ClusterAdminClient client) {
+        super((InternalGenericClient)client, new ReloadSettingsClusterRequest());
+        reloadSettingsClientWrapper = new ReloadSettingsClientWrapper(client);
+    }
+
+    public ReloadSettingsClusterRequestBuilder setVersion(long version) {
+        request.setVersion(version);
+        return this;
+    }
+
+    @Override
+    protected void doExecute(ActionListener<ReloadSettingsClusterResponse> listener) {
+        reloadSettingsClientWrapper.clusterSettingsTimestamp(request, listener);
+    }
+
+}

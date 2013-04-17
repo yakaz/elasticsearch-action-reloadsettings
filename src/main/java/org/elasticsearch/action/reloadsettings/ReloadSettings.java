@@ -174,6 +174,7 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
         private Settings persistentSettings;
 
         private DateTime timestamp;
+        private long version;
 
         public Settings getEffectiveSettings() {
             return effectiveSettings;
@@ -205,6 +206,14 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
 
         public void setTimestamp(DateTime timestamp) {
             this.timestamp = timestamp;
+        }
+
+        public long getVersion() {
+            return version;
+        }
+
+        public void setVersion(long version) {
+            this.version = version;
         }
 
         @Override

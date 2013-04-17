@@ -1,7 +1,5 @@
 package org.elasticsearch.action.reloadsettings;
 
-import org.elasticsearch.common.component.AbstractComponent;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.joda.time.DateTime;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -11,16 +9,11 @@ import java.io.File;
 import java.net.URISyntaxException;
 import java.net.URL;
 
-public class ReloadSettingsNodeService extends AbstractComponent {
+public class ReloadSettingsNodeUtil {
 
-    private ESLogger logger = Loggers.getLogger(ReloadSettingsNodeService.class);
+    private static ESLogger logger = Loggers.getLogger(ReloadSettingsNodeUtil.class);
 
-    @Inject
-    public ReloadSettingsNodeService(Settings settings) {
-        super(settings);
-    }
-
-    public DateTime getLastFileTimestamp(Settings pSettings) {
+    public static DateTime getLastFileTimestamp(Settings pSettings) {
         URL fileConf = ESInternalSettingsPerparer.getConfigurationURL(pSettings);
         if (fileConf == null || !"file".equals(fileConf.getProtocol()))
             return null;

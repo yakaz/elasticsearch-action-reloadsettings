@@ -29,17 +29,14 @@ public class TransportReloadSettingsAction extends TransportNodesOperationAction
 
     private final DynamicSettings dynamicSettings;
     private final ReloadSettingsClusterService reloadSettingsClusterService;
-    private final ReloadSettingsNodeService reloadSettingsNodeService;
 
     @Inject
     public TransportReloadSettingsAction(Settings settings, ClusterName clusterName, ThreadPool threadPool,
                                          ClusterService clusterService, TransportService transportService,
                                          ReloadSettingsClusterService reloadSettingsClusterService,
-                                         ReloadSettingsNodeService reloadSettingsNodeService,
                                          @ClusterDynamicSettings DynamicSettings dynamicSettings) {
         super(settings, clusterName, threadPool, clusterService, transportService);
         this.reloadSettingsClusterService = reloadSettingsClusterService;
-        this.reloadSettingsNodeService = reloadSettingsNodeService;
         this.dynamicSettings = dynamicSettings;
     }
 
@@ -68,6 +65,7 @@ public class TransportReloadSettingsAction extends TransportNodesOperationAction
         }
         ReloadSettings.Cluster clusterResponse = new ReloadSettings.Cluster();
         clusterResponse.setTimestamp(reloadSettingsClusterService.getLastClusterSettingsTimestamp());
+        clusterResponse.setVersion(reloadSettingsClusterService.getLastMetaData().version());
         clusterResponse.setEffectiveSettings(reloadSettingsClusterService.getLastMetaData().settings());
         clusterResponse.setTransientSettings(reloadSettingsClusterService.getLastMetaData().transientSettings());
         clusterResponse.setPersistentSettings(reloadSettingsClusterService.getLastMetaData().persistentSettings());
@@ -107,7 +105,7 @@ public class TransportReloadSettingsAction extends TransportNodesOperationAction
         nodeResponse.setInitialSettings(settings);
         nodeResponse.setFileSettings(startupConf.v1());
         nodeResponse.setEnvironmentSettings(startupConf.v2().settings());
-        nodeResponse.setFileTimestamp(reloadSettingsNodeService.getLastFileTimestamp(pSettings));
+        nodeResponse.setFileTimestamp(ReloadSettingsNodeUtil.getLastFileTimestamp(pSettings));
         return nodeResponse;
     }
 

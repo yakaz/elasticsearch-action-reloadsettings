@@ -6,6 +6,7 @@ import org.elasticsearch.action.reloadsettings.inconsistencies.ClusterInconsiste
 import org.elasticsearch.action.reloadsettings.inconsistencies.NodeInconsistency;
 import org.elasticsearch.client.ReloadSettingsClient;
 import org.elasticsearch.client.ReloadSettingsClientWrapper;
+import org.elasticsearch.common.joda.time.DateTime;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.integration.AbstractNodesTests;
@@ -226,6 +227,63 @@ public class ReloadSettingsActionTests extends AbstractNodesTests {
             System.clearProperty("es.config");
         else
             System.setProperty("es.config", oldEsConfig);
+    }
+
+    @Test
+    public void testClusterSettingDateIsConsistent() throws Exception {
+        logger.info("--> starting 2 nodes");
+        ClusterHealthResponse clusterHealthResponse;
+        ReloadSettingsResponse response;
+        DateTime referenceTs;
+        long referenceVersion;
+
+        // Start the two nodes the one after the other
+
+        startNode("node1");
+        clusterHealthResponse = client("node1").admin().cluster().prepareHealth().setWaitForGreenStatus().execute().actionGet();
+        assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
+
+        Thread.sleep(250); // wait for timestamp propagation (can be lowered to 50ms on my machine)
+
+        response = getSettings("node1");
+        assertThat(response.getNodes().length, equalTo(1));
+        referenceVersion = response.getClusterSettings().getVersion();
+        referenceTs = response.getClusterSettings().getTimestamp();
+        assertThat(referenceTs, notNullValue());
+
+        Thread.sleep(1250); // make sure we changed of second
+
+        startNode("node2");
+        clusterHealthResponse = client("node2").admin().cluster().prepareHealth().setWaitForGreenStatus().execute().actionGet();
+        assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
+        Thread.sleep(250); // wait for timestamp propagation (sleep not necessary on my machine)
+
+        response = getSettings("node2");
+        assertThat(response.getNodes().length, equalTo(2));
+        // Make sure the two nodes agree on the timestamp and version
+        assertThat(response.getClusterSettings().getVersion(), equalTo(referenceVersion));
+        assertThat(response.getClusterSettings().getTimestamp(), equalTo(referenceTs));
+
+        // Restart the nodes of the cluster (without shutting down the entire cluster,
+        // to for renewal of the nodes
+        closeNode("node1");
+        Thread.sleep(1250); // make sure we changed of second
+        startNode("node1");
+        closeNode("node2");
+        Thread.sleep(1250); // make sure we changed of second
+        startNode("node2");
+
+        response = getSettings("node1");
+        assertThat(response.getNodes().length, equalTo(2));
+        // Make sure the timestamp is still consistent
+        assertThat(response.getClusterSettings().getVersion(), equalTo(referenceVersion));
+        assertThat(response.getClusterSettings().getTimestamp(), equalTo(referenceTs));
+
+        response = getSettings("node2");
+        assertThat(response.getNodes().length, equalTo(2));
+        // Make sure the two nodes still agree on the timestamp and version
+        assertThat(response.getClusterSettings().getVersion(), equalTo(referenceVersion));
+        assertThat(response.getClusterSettings().getTimestamp(), equalTo(referenceTs));
     }
 
 }

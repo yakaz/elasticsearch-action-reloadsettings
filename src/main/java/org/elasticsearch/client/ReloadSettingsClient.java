@@ -2,6 +2,9 @@ package org.elasticsearch.client;
 
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.reloadsettings.ReloadSettingsClusterRequest;
+import org.elasticsearch.action.reloadsettings.ReloadSettingsClusterRequestBuilder;
+import org.elasticsearch.action.reloadsettings.ReloadSettingsClusterResponse;
 import org.elasticsearch.action.reloadsettings.ReloadSettingsRequest;
 import org.elasticsearch.action.reloadsettings.ReloadSettingsRequestBuilder;
 import org.elasticsearch.action.reloadsettings.ReloadSettingsResponse;
@@ -31,5 +34,21 @@ public interface ReloadSettingsClient {
      * @return a builder instance
      */
     ReloadSettingsRequestBuilder prepareReloadSettings();
+
+    /**
+     * Returns the cluster settings timestamp, as defined by the master itself.
+     */
+    void clusterSettingsTimestamp(ReloadSettingsClusterRequest request, ActionListener<ReloadSettingsClusterResponse> listener);
+
+    /**
+     * Performs the same action as in {@link #clusterSettingsTimestamp(org.elasticsearch.action.reloadsettings.ReloadSettingsClusterRequest)},
+     * but works with an {@link ActionFuture} instead of a {@link ActionListener}.
+     */
+    ActionFuture<ReloadSettingsClusterResponse> clusterSettingsTimestamp(ReloadSettingsClusterRequest request);
+
+    /**
+     * Prepares a clusterSettingsTimestamp request.
+     */
+    ReloadSettingsClusterRequestBuilder prepareClusterSettingsTimestamp();
 
 }

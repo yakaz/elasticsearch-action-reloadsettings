@@ -15,8 +15,6 @@ public class ReloadSettingsRequestBuilder extends NodesOperationRequestBuilder<R
         reloadSettingsClientWrapper = new ReloadSettingsClientWrapper(client);
     }
 
-    // TODO
-
     @Override
     protected void doExecute(ActionListener<ReloadSettingsResponse> listener) {
         reloadSettingsClientWrapper.reloadSettings(request, listener);
