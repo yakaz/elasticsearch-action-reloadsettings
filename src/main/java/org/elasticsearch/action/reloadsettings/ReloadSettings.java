@@ -126,7 +126,7 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
         builder.field(Fields.FILE, fileSettings.getAsMap());
         builder.field(Fields.ENVIRONMENT, environmentSettings.getAsMap());
         if (fileTimestamp != null) {
-            builder.field(Fields.FILE_TIMESTAMP, fileTimestamp.toString(ISODateTimeFormat.dateTimeNoMillis()));
+            builder.field(Fields.FILE_TIMESTAMP, fileTimestamp.toString(ISODateTimeFormat.dateTime()));
             builder.field(Fields.FILE_TIMESTAMP_IN_MILLIS, fileTimestamp.getMillis());
         } else {
             builder.nullField(Fields.FILE_TIMESTAMP);
@@ -244,7 +244,7 @@ public class ReloadSettings extends NodeOperationResponse implements ToXContent 
                 builder.nullField(Fields.TIMESTAMP);
                 builder.nullField(Fields.TIMESTAMP_IN_MILLIS);
             } else {
-                builder.field(Fields.TIMESTAMP, timestamp.toString(ISODateTimeFormat.dateTimeNoMillis()));
+                builder.field(Fields.TIMESTAMP, timestamp.toString(ISODateTimeFormat.dateTime()));
                 builder.field(Fields.TIMESTAMP_IN_MILLIS, timestamp.getMillis());
             }
             builder.endObject();
