@@ -77,7 +77,7 @@ public class ReloadSettingsClusterService extends AbstractLifecycleComponent<Rel
                 }
                 @Override
                 public void onFailure(Throwable e) {
-                    logger.error("[{}] Error while retrieving metadata cluster settings timestamp for version {} from master", clusterService.localNode().getName(), e, version);
+                    logger.error("[{}] Error while retrieving metadata cluster settings timestamp for version {} from master", e, clusterService.localNode().getName(), version);
                 }
             });
         }
