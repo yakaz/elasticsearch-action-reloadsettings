@@ -68,7 +68,12 @@ def raise_with_answer_text(args, request, message=None):
 def get_settings(args):
     r = requests.get(args.reload_url)
     raise_with_answer_text(args, r, 'Could not get settings!')
-    return r.json
+    if hasattr(r.json, '__call__'):
+        # requests >= 1.0.0
+        return r.json()
+    else:
+        # requests < 1.0.0
+        return r.json
 
 def collect_node_local_inconsistencies(settings):
     local_inconsistencies = set()
