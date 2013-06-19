@@ -8,7 +8,7 @@ Installation
 
 Simply run at the root of your ElasticSearch installation:
 
-	bin/plugin -install com.yakaz.elasticsearch.plugins/elasticsearch-action-reloadsettings/1.0.0
+	bin/plugin -install com.yakaz.elasticsearch.plugins/elasticsearch-action-reloadsettings/1.0.1
 
 This will download the plugin from the Central Maven Repository.
 
@@ -18,7 +18,7 @@ In order to declare this plugin as a dependency, add the following to your `pom.
 <dependency>
     <groupId>com.yakaz.elasticsearch.plugins</groupId>
     <artifactId>elasticsearch-action-reloadsettings</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 </dependency>
 ```
 
@@ -29,7 +29,7 @@ Version matrix:
 	├────────┼──────────────────────┤
 	│ master │ 0.90.0.RC1 ─► master │
 	├────────┼──────────────────────┤
-	│ 1.0.0  │ 0.90.0.RC1 ─► master │
+	│ 1.0.x  │ 0.90.0.RC1 ─► master │
 	└────────┴──────────────────────┘
 
 Description
