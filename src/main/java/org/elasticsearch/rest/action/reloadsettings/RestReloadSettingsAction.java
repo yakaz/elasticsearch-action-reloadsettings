@@ -5,6 +5,7 @@ import org.elasticsearch.action.reloadsettings.ReloadSettingsRequest;
 import org.elasticsearch.action.reloadsettings.ReloadSettingsResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.ReloadSettingsClientWrapper;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
@@ -37,7 +38,7 @@ public class RestReloadSettingsAction extends BaseRestHandler {
 
     @Override
     public void handleRequest(final RestRequest request, final RestChannel channel) {
-        String[] nodesIds = RestActions.splitNodes(request.param("nodeId"));
+        String[] nodesIds = Strings.splitStringByCommaToArray(request.param("nodeId"));
         ReloadSettingsRequest reloadSettingsRequest = new ReloadSettingsRequest(nodesIds);
 
         reloadSettingsClientWrapper.reloadSettings(reloadSettingsRequest, new ActionListener<ReloadSettingsResponse>() {

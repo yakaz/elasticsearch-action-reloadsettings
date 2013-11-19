@@ -14,7 +14,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
-import org.elasticsearch.node.internal.InternalSettingsPerparer;
+import org.elasticsearch.node.internal.InternalSettingsPreparer;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -84,13 +84,13 @@ public class TransportReloadSettingsAction extends TransportNodesOperationAction
 
     @Override
     protected ReloadSettings newNodeResponse() {
-        return new ReloadSettings(null);
+        return new ReloadSettings(clusterService.localNode());
     }
 
     @Override
     protected ReloadSettings nodeOperation(ReloadSettingsRequest nodeRequest) throws ElasticSearchException {
         org.elasticsearch.action.reloadsettings.ReloadSettingsRequest request = nodeRequest.request;
-        ReloadSettings nodeResponse = new ReloadSettings(clusterService.state().nodes().localNode());
+        ReloadSettings nodeResponse = new ReloadSettings(clusterService.localNode());
 
         // Reconstruct the initial environment
         // This assumes that the nodes have been built using Bootstrap,
@@ -100,7 +100,7 @@ public class TransportReloadSettingsAction extends TransportNodesOperationAction
         Settings pSettings = ImmutableSettings.builder()
                 .put("name", RANDOM_VALUE_AT_STARTUP) // neutralize randomly chosen name for response consistency
                 .build();
-        Tuple<Settings, Environment> startupConf = InternalSettingsPerparer.prepareSettings(pSettings, true);
+        Tuple<Settings, Environment> startupConf = InternalSettingsPreparer.prepareSettings(pSettings, true);
 
         nodeResponse.setInitialSettings(settings);
         nodeResponse.setFileSettings(startupConf.v1());
