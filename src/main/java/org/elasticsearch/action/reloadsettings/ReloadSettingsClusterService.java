@@ -1,6 +1,6 @@
 package org.elasticsearch.action.reloadsettings;
 
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -36,17 +36,17 @@ public class ReloadSettingsClusterService extends AbstractLifecycleComponent<Rel
     }
 
     @Override
-    protected void doStart() throws ElasticSearchException {
+    protected void doStart() throws ElasticsearchException {
         reloadSettingsClusterAction = injector.getInstance(TransportReloadSettingsClusterAction.class);
         nodeSettingsService.addListener(this);
     }
 
     @Override
-    protected void doClose() throws ElasticSearchException {
+    protected void doClose() throws ElasticsearchException {
     }
 
     @Override
-    protected void doStop() throws ElasticSearchException {
+    protected void doStop() throws ElasticsearchException {
         reloadSettingsClusterAction = null;
         nodeSettingsService.removeListener(this);
     }

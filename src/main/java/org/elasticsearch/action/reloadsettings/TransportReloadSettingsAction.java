@@ -1,6 +1,6 @@
 package org.elasticsearch.action.reloadsettings;
 
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.support.nodes.NodeOperationRequest;
 import org.elasticsearch.action.support.nodes.TransportNodesOperationAction;
 import org.elasticsearch.cluster.ClusterName;
@@ -88,7 +88,7 @@ public class TransportReloadSettingsAction extends TransportNodesOperationAction
     }
 
     @Override
-    protected ReloadSettings nodeOperation(ReloadSettingsRequest nodeRequest) throws ElasticSearchException {
+    protected ReloadSettings nodeOperation(ReloadSettingsRequest nodeRequest) throws ElasticsearchException {
         org.elasticsearch.action.reloadsettings.ReloadSettingsRequest request = nodeRequest.request;
         ReloadSettings nodeResponse = new ReloadSettings(clusterService.localNode());
 

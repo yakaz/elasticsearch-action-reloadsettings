@@ -1,6 +1,6 @@
 package org.elasticsearch.action.reloadsettings;
 
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeOperationAction;
 import org.elasticsearch.cluster.ClusterService;
@@ -43,7 +43,7 @@ public class TransportReloadSettingsClusterAction extends TransportMasterNodeOpe
     }
 
     @Override
-    protected void masterOperation(ReloadSettingsClusterRequest request, ClusterState state, ActionListener<ReloadSettingsClusterResponse> responseListener) throws ElasticSearchException {
+    protected void masterOperation(ReloadSettingsClusterRequest request, ClusterState state, ActionListener<ReloadSettingsClusterResponse> responseListener) throws ElasticsearchException {
         ReloadSettingsClusterResponse rtn = new ReloadSettingsClusterResponse();
         rtn.setVersion(reloadSettingsClusterService.getLastMetaData().version());
         rtn.setTimestamp(reloadSettingsClusterService.getLastClusterSettingsTimestamp());
