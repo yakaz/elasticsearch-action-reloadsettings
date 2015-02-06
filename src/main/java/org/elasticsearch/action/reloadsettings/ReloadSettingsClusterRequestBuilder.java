@@ -4,14 +4,13 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.MasterNodeOperationRequestBuilder;
 import org.elasticsearch.client.ClusterAdminClient;
 import org.elasticsearch.client.ReloadSettingsClientWrapper;
-import org.elasticsearch.client.internal.InternalGenericClient;
 
-public class ReloadSettingsClusterRequestBuilder extends MasterNodeOperationRequestBuilder<ReloadSettingsClusterRequest, ReloadSettingsClusterResponse, ReloadSettingsClusterRequestBuilder> {
+public class ReloadSettingsClusterRequestBuilder extends MasterNodeOperationRequestBuilder<ReloadSettingsClusterRequest, ReloadSettingsClusterResponse, ReloadSettingsClusterRequestBuilder, ClusterAdminClient> {
 
     protected final ReloadSettingsClientWrapper reloadSettingsClientWrapper;
 
     public ReloadSettingsClusterRequestBuilder(ClusterAdminClient client) {
-        super((InternalGenericClient)client, new ReloadSettingsClusterRequest());
+        super(client, new ReloadSettingsClusterRequest());
         reloadSettingsClientWrapper = new ReloadSettingsClientWrapper(client);
     }
 

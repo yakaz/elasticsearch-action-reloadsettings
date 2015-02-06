@@ -34,7 +34,7 @@ public class RestReloadSettingsAction extends BaseRestHandler {
     }
 
     @Override
-    public void handleRequest(final RestRequest request, final RestChannel channel) {
+    public void handleRequest(final RestRequest request, final RestChannel channel, final Client client) {
         String[] nodesIds = Strings.splitStringByCommaToArray(request.param("nodeId"));
         ReloadSettingsRequest reloadSettingsRequest = new ReloadSettingsRequest(nodesIds);
 

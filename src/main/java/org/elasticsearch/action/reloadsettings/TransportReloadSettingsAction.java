@@ -35,7 +35,7 @@ public class TransportReloadSettingsAction extends TransportNodesOperationAction
                                          ClusterService clusterService, TransportService transportService,
                                          ReloadSettingsClusterService reloadSettingsClusterService,
                                          @ClusterDynamicSettings DynamicSettings dynamicSettings) {
-        super(settings, clusterName, threadPool, clusterService, transportService);
+        super(settings, ReloadSettingsAction.NAME, clusterName, threadPool, clusterService, transportService);
         this.reloadSettingsClusterService = reloadSettingsClusterService;
         this.dynamicSettings = dynamicSettings;
     }
@@ -43,11 +43,6 @@ public class TransportReloadSettingsAction extends TransportNodesOperationAction
     @Override
     protected String executor() {
         return ThreadPool.Names.MANAGEMENT;
-    }
-
-    @Override
-    protected String transportAction() {
-        return ReloadSettingsAction.NAME;
     }
 
     @Override

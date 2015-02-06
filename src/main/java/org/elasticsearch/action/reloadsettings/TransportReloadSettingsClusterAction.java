@@ -18,18 +18,13 @@ public class TransportReloadSettingsClusterAction extends TransportMasterNodeOpe
     public TransportReloadSettingsClusterAction(Settings settings, TransportService transportService,
                                                 ClusterService clusterService, ThreadPool threadPool,
                                                 ReloadSettingsClusterService reloadSettingsClusterService) {
-        super(settings, transportService, clusterService, threadPool);
+        super(settings, ReloadSettingsClusterAction.NAME, transportService, clusterService, threadPool);
         this.reloadSettingsClusterService = reloadSettingsClusterService;
     }
 
     @Override
     protected String executor() {
         return ThreadPool.Names.MANAGEMENT;
-    }
-
-    @Override
-    protected String transportAction() {
-        return ReloadSettingsClusterAction.NAME;
     }
 
     @Override
