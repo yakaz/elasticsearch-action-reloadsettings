@@ -1,6 +1,7 @@
 package org.elasticsearch.action.reloadsettings;
 
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.nodes.NodeOperationRequest;
 import org.elasticsearch.action.support.nodes.TransportNodesOperationAction;
 import org.elasticsearch.cluster.ClusterName;
@@ -34,8 +35,9 @@ public class TransportReloadSettingsAction extends TransportNodesOperationAction
     public TransportReloadSettingsAction(Settings settings, ClusterName clusterName, ThreadPool threadPool,
                                          ClusterService clusterService, TransportService transportService,
                                          ReloadSettingsClusterService reloadSettingsClusterService,
-                                         @ClusterDynamicSettings DynamicSettings dynamicSettings) {
-        super(settings, ReloadSettingsAction.NAME, clusterName, threadPool, clusterService, transportService);
+                                         @ClusterDynamicSettings DynamicSettings dynamicSettings,
+                                         ActionFilters actionFilters) {
+        super(settings, ReloadSettingsAction.NAME, clusterName, threadPool, clusterService, transportService, actionFilters);
         this.reloadSettingsClusterService = reloadSettingsClusterService;
         this.dynamicSettings = dynamicSettings;
     }

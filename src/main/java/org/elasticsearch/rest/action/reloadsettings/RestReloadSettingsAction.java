@@ -27,7 +27,7 @@ public class RestReloadSettingsAction extends BaseRestHandler {
 
     @Inject
     public RestReloadSettingsAction(Settings settings, Client client, RestController controller) {
-        super(settings, client);
+        super(settings, controller, client);
         reloadSettingsClientWrapper = new ReloadSettingsClientWrapper(client.admin().cluster());
         controller.registerHandler(GET, "/_nodes/settings/reload", this);
         controller.registerHandler(GET, "/_nodes/{nodeId}/settings/reload", this);

@@ -2,9 +2,12 @@ package org.elasticsearch.action.reloadsettings;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeOperationAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.block.ClusterBlockException;
+import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -17,8 +20,9 @@ public class TransportReloadSettingsClusterAction extends TransportMasterNodeOpe
     @Inject
     public TransportReloadSettingsClusterAction(Settings settings, TransportService transportService,
                                                 ClusterService clusterService, ThreadPool threadPool,
-                                                ReloadSettingsClusterService reloadSettingsClusterService) {
-        super(settings, ReloadSettingsClusterAction.NAME, transportService, clusterService, threadPool);
+                                                ReloadSettingsClusterService reloadSettingsClusterService,
+                                                ActionFilters actionFilters) {
+        super(settings, ReloadSettingsClusterAction.NAME, transportService, clusterService, threadPool, actionFilters);
         this.reloadSettingsClusterService = reloadSettingsClusterService;
     }
 
@@ -35,6 +39,11 @@ public class TransportReloadSettingsClusterAction extends TransportMasterNodeOpe
     @Override
     protected ReloadSettingsClusterResponse newResponse() {
         return new ReloadSettingsClusterResponse();
+    }
+
+    @Override
+    protected ClusterBlockException checkBlock(ReloadSettingsClusterRequest request, ClusterState state) {
+        return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA);
     }
 
     @Override

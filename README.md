@@ -8,7 +8,7 @@ Installation
 
 Simply run at the root of your ElasticSearch installation:
 
-	bin/plugin -install com.yakaz.elasticsearch.plugins/elasticsearch-action-reloadsettings/1.5.0
+	bin/plugin -install com.yakaz.elasticsearch.plugins/elasticsearch-action-reloadsettings/1.6.0
 
 This will download the plugin from the Central Maven Repository.
 
@@ -18,27 +18,29 @@ In order to declare this plugin as a dependency, add the following to your `pom.
 <dependency>
     <groupId>com.yakaz.elasticsearch.plugins</groupId>
     <artifactId>elasticsearch-action-reloadsettings</artifactId>
-    <version>1.5.0</version>
+    <version>1.6.0</version>
 </dependency>
 ```
 
 Version matrix:
 
-	┌────────┬──────────────────────┐
-	│ Plugin │     ElasticSearch    │
-	├────────┼──────────────────────┤
-	│ 1.5.x  │ 1.3.0 ─► (1.3.7)     │
-	├────────┼──────────────────────┤
-	│ 1.4.x  │ 1.2.0 ─► (1.2.4)     │
-	├────────┼──────────────────────┤
-	│ 1.3.x  │ 1.0.0.RC1 ─► (1.1.1) │
-	├────────┼──────────────────────┤
-	│ 1.2.x  │ 0.90.4 ─► (0.90.11)  │
-	├────────┼──────────────────────┤
-	│ 1.1.x  │ 0.90.3               │
-	├────────┼──────────────────────┤
-	│ 1.0.x  │ 0.90.0.RC1 ─► 0.90.2 │
-	└────────┴──────────────────────┘
+	┌────────┬────────────────────────┐
+	│ Plugin │     ElasticSearch      │
+	├────────┼────────────────────────┤
+	│ 1.6.x  │ 1.4.0.Beta1 ─► (1.4.2) │
+	├────────┼────────────────────────┤
+	│ 1.5.x  │ 1.3.0 ─► (1.3.7)       │
+	├────────┼────────────────────────┤
+	│ 1.4.x  │ 1.2.0 ─► (1.2.4)       │
+	├────────┼────────────────────────┤
+	│ 1.3.x  │ 1.0.0.RC1 ─► (1.1.1)   │
+	├────────┼────────────────────────┤
+	│ 1.2.x  │ 0.90.4 ─► (0.90.11)    │
+	├────────┼────────────────────────┤
+	│ 1.1.x  │ 0.90.3                 │
+	├────────┼────────────────────────┤
+	│ 1.0.x  │ 0.90.0.RC1 ─► 0.90.2   │
+	└────────┴────────────────────────┘
 
 Description
 -----------
