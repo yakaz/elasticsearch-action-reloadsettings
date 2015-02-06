@@ -11,13 +11,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.BaseRestHandler;
+import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.rest.XContentRestResponse;
-import org.elasticsearch.rest.XContentThrowableRestResponse;
-import org.elasticsearch.rest.action.support.RestActions;
-import org.elasticsearch.rest.action.support.RestXContentBuilder;
 
 import java.io.IOException;
 
@@ -45,13 +42,13 @@ public class RestReloadSettingsAction extends BaseRestHandler {
             @Override
             public void onResponse(ReloadSettingsResponse response) {
                 try {
-                    XContentBuilder builder = RestXContentBuilder.restContentBuilder(request);
+                    XContentBuilder builder = channel.newBuilder();
 
                     builder.startObject();
                     response.toXContent(builder, ToXContent.EMPTY_PARAMS);
                     builder.endObject();
 
-                    channel.sendResponse(new XContentRestResponse(request, OK, builder));
+                    channel.sendResponse(new BytesRestResponse(OK, builder));
                 } catch (IOException e) {
                     onFailure(e);
                 }
@@ -60,7 +57,7 @@ public class RestReloadSettingsAction extends BaseRestHandler {
             @Override
             public void onFailure(Throwable e) {
                 try {
-                    channel.sendResponse(new XContentThrowableRestResponse(request, e));
+                    channel.sendResponse(new BytesRestResponse(channel, e));
                 } catch (IOException e1) {
                     logger.error("Failed to send failure response", e1);
                 }
